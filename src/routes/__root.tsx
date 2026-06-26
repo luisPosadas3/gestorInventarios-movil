@@ -76,20 +76,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" },
+      { title: "Gestor de Inventario" },
+      { name: "description", content: "Aplicación móvil para gestión de inventarios, ventas y movimientos." },
+      { name: "theme-color", content: "#00288e" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: appCss,
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap",
       },
     ],
   }),
