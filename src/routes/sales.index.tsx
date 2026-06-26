@@ -21,8 +21,12 @@ function Sales() {
     return { ...c, product: p, subtotal: p.salePrice * c.qty };
   });
   const total = cartItems.reduce((s, i) => s + i.subtotal, 0);
-  const orderId = `ORD-${String(Math.floor(Math.random() * 90000 + 10000))}`;
-  const now = new Date();
+  const [orderId, setOrderId] = useState("ORD-00000");
+  const [dateLabel, setDateLabel] = useState("");
+  useEffect(() => {
+    setOrderId(`ORD-${String(Math.floor(Math.random() * 90000 + 10000))}`);
+    setDateLabel(new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" }));
+  }, []);
 
   const searchResults = q
     ? products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase())).slice(0, 5)
