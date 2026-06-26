@@ -9,38 +9,140 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SalesIndexRouteImport } from './routes/sales.index'
+import { Route as ProductsIndexRouteImport } from './routes/products.index'
+import { Route as MovementsIndexRouteImport } from './routes/movements.index'
+import { Route as AlertsIndexRouteImport } from './routes/alerts.index'
+import { Route as ProductsNewRouteImport } from './routes/products.new'
+import { Route as MovementsHistoryRouteImport } from './routes/movements.history'
 
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesIndexRoute = SalesIndexRouteImport.update({
+  id: '/sales/',
+  path: '/sales/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsIndexRoute = ProductsIndexRouteImport.update({
+  id: '/products/',
+  path: '/products/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MovementsIndexRoute = MovementsIndexRouteImport.update({
+  id: '/movements/',
+  path: '/movements/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlertsIndexRoute = AlertsIndexRouteImport.update({
+  id: '/alerts/',
+  path: '/alerts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsNewRoute = ProductsNewRouteImport.update({
+  id: '/products/new',
+  path: '/products/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MovementsHistoryRoute = MovementsHistoryRouteImport.update({
+  id: '/movements/history',
+  path: '/movements/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/finance': typeof FinanceRoute
+  '/movements/history': typeof MovementsHistoryRoute
+  '/products/new': typeof ProductsNewRoute
+  '/alerts/': typeof AlertsIndexRoute
+  '/movements/': typeof MovementsIndexRoute
+  '/products/': typeof ProductsIndexRoute
+  '/sales/': typeof SalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/finance': typeof FinanceRoute
+  '/movements/history': typeof MovementsHistoryRoute
+  '/products/new': typeof ProductsNewRoute
+  '/alerts': typeof AlertsIndexRoute
+  '/movements': typeof MovementsIndexRoute
+  '/products': typeof ProductsIndexRoute
+  '/sales': typeof SalesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/finance': typeof FinanceRoute
+  '/movements/history': typeof MovementsHistoryRoute
+  '/products/new': typeof ProductsNewRoute
+  '/alerts/': typeof AlertsIndexRoute
+  '/movements/': typeof MovementsIndexRoute
+  '/products/': typeof ProductsIndexRoute
+  '/sales/': typeof SalesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/finance'
+    | '/movements/history'
+    | '/products/new'
+    | '/alerts/'
+    | '/movements/'
+    | '/products/'
+    | '/sales/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/finance'
+    | '/movements/history'
+    | '/products/new'
+    | '/alerts'
+    | '/movements'
+    | '/products'
+    | '/sales'
+  id:
+    | '__root__'
+    | '/'
+    | '/finance'
+    | '/movements/history'
+    | '/products/new'
+    | '/alerts/'
+    | '/movements/'
+    | '/products/'
+    | '/sales/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FinanceRoute: typeof FinanceRoute
+  MovementsHistoryRoute: typeof MovementsHistoryRoute
+  ProductsNewRoute: typeof ProductsNewRoute
+  AlertsIndexRoute: typeof AlertsIndexRoute
+  MovementsIndexRoute: typeof MovementsIndexRoute
+  ProductsIndexRoute: typeof ProductsIndexRoute
+  SalesIndexRoute: typeof SalesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +150,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/': {
+      id: '/sales/'
+      path: '/sales'
+      fullPath: '/sales/'
+      preLoaderRoute: typeof SalesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/': {
+      id: '/products/'
+      path: '/products'
+      fullPath: '/products/'
+      preLoaderRoute: typeof ProductsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/movements/': {
+      id: '/movements/'
+      path: '/movements'
+      fullPath: '/movements/'
+      preLoaderRoute: typeof MovementsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alerts/': {
+      id: '/alerts/'
+      path: '/alerts'
+      fullPath: '/alerts/'
+      preLoaderRoute: typeof AlertsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/new': {
+      id: '/products/new'
+      path: '/products/new'
+      fullPath: '/products/new'
+      preLoaderRoute: typeof ProductsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/movements/history': {
+      id: '/movements/history'
+      path: '/movements/history'
+      fullPath: '/movements/history'
+      preLoaderRoute: typeof MovementsHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FinanceRoute: FinanceRoute,
+  MovementsHistoryRoute: MovementsHistoryRoute,
+  ProductsNewRoute: ProductsNewRoute,
+  AlertsIndexRoute: AlertsIndexRoute,
+  MovementsIndexRoute: MovementsIndexRoute,
+  ProductsIndexRoute: ProductsIndexRoute,
+  SalesIndexRoute: SalesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
