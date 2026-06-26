@@ -96,7 +96,7 @@ function Sales() {
             <h2 className="text-headline-sm font-semibold">Venta Actual</h2>
             <div className="text-right">
               <p className="text-label-md text-on-surface-variant font-mono">{orderId}</p>
-              <p className="text-label-md text-on-surface-variant">{now.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" })}</p>
+              <p className="text-label-md text-on-surface-variant">{dateLabel}</p>
             </div>
           </div>
           <div className="divide-y divide-outline-variant">
