@@ -2,14 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { useStore } from "@/lib/store";
+import type { Movement } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/movements/history")({
   head: () => ({ meta: [{ title: "Historial de Movimientos" }] }),
   component: History,
 });
 
-function groupByDay(movements: { timestamp: string }[]) {
-  const map = new Map<string, typeof movements>();
+function groupByDay(movements: Movement[]) {
+  const map = new Map<string, Movement[]>();
   for (const m of movements) {
     const d = new Date(m.timestamp);
     const key = d.toDateString();
