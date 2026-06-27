@@ -54,8 +54,12 @@ function Products() {
               key={p.id}
               className={`bg-surface-container-lowest border border-outline-variant border-l-4 ${c.border} rounded-xl p-container-padding flex items-center gap-3 hover:shadow-md transition-shadow`}
             >
-              <div className="w-14 h-14 rounded-lg bg-surface-container grid place-items-center shrink-0">
-                <Icon name={p.icon} className="text-primary" style={{ fontSize: 28 }} />
+              <div className="w-14 h-14 rounded-lg bg-surface-container grid place-items-center shrink-0 overflow-hidden">
+                {p.image ? (
+                  <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Icon name={p.icon} className="text-primary" style={{ fontSize: 28 }} />
+                )}
               </div>
               <div className="flex-grow min-w-0">
                 <h3 className="text-label-lg font-semibold truncate text-on-surface">{p.name}</h3>
