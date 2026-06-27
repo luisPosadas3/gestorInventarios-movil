@@ -226,6 +226,21 @@ function Sales() {
           </div>
         </div>
       )}
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={(code, product) => {
+          if (product) {
+            addToCart(product.id);
+            setQ("");
+            setShowAdd(false);
+          } else {
+            setQ(code);
+            setShowAdd(true);
+          }
+        }}
+      />
     </AppShell>
   );
 }
