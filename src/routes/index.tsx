@@ -30,7 +30,7 @@ function Dashboard() {
           <Icon name="inventory" className="text-primary p-2 bg-primary-fixed rounded-lg w-fit" />
           <div>
             <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Total Productos</p>
-            <p className="text-headline-md text-primary font-semibold">{totalProducts.toLocaleString()}</p>
+            <p className="text-headline-md text-primary font-semibold">{totalProducts}</p>
           </div>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex flex-col justify-between h-32 shadow-sm">
@@ -46,7 +46,7 @@ function Dashboard() {
             <Icon name="payments" filled className="text-secondary p-3 bg-secondary-fixed rounded-full" />
             <div>
               <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Valor Total Inventario</p>
-              <p className="text-headline-md text-on-surface font-semibold">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              <p className="text-headline-md text-on-surface font-semibold">${Math.round(totalValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</p>
             </div>
           </div>
         </div>

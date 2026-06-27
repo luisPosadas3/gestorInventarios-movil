@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/movements/")({
@@ -16,6 +17,8 @@ function Movements() {
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState("");
   const [confirm, setConfirm] = useState<null | { product: typeof products[number]; qty: number; type: "entrada" | "salida"; unit: number }>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [lastScan, setLastScan] = useState<{ code: string; matched: boolean } | null>(null);
 
   const product = products.find((p) => p.id === productId);
   const unit = parseFloat(price) || product?.salePrice || 0;
@@ -134,12 +137,27 @@ function Movements() {
           <p className="text-label-md">Historial</p>
           <p className="text-headline-sm font-semibold">Ver movimientos</p>
         </Link>
-        <div className="p-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => setScanOpen(true)}
+          className="p-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl flex flex-col gap-2 active:scale-95 transition-transform text-left"
+        >
           <Icon name="barcode_scanner" />
           <p className="text-label-md">Escanear código</p>
           <p className="text-headline-sm font-semibold">Abrir Cámara</p>
-        </div>
+        </button>
       </section>
+
+      {lastScan && (
+        <section className="mt-section-margin p-3 rounded-xl border border-outline-variant bg-surface-container-lowest flex items-center gap-3">
+          <Icon name={lastScan.matched ? "check_circle" : "search_off"} className={lastScan.matched ? "text-secondary" : "text-error"} />
+          <div className="flex-1 min-w-0">
+            <p className="text-label-md text-on-surface-variant">Último código escaneado</p>
+            <p className="font-mono text-label-lg truncate">{lastScan.code}</p>
+            {!lastScan.matched && <p className="text-label-md text-error">Sin coincidencia en el catálogo</p>}
+          </div>
+        </section>
+      )}
 
       {confirm && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4">
@@ -201,6 +219,15 @@ function Movements() {
           </div>
         </div>
       )}
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={(code, product) => {
+          setLastScan({ code, matched: !!product });
+          if (product) setProductId(product.id);
+        }}
+      />
     </AppShell>
   );
 }

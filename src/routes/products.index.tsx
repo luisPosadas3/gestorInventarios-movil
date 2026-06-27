@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/products/")({
@@ -18,6 +19,7 @@ function stockColor(stock: number, min: number) {
 function Products() {
   const { products } = useStore();
   const [q, setQ] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
   const filtered = products.filter(
     (p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()),
   );
@@ -33,7 +35,12 @@ function Products() {
             placeholder="Buscar productos..."
             className="w-full h-12 bg-surface-container-lowest border border-outline rounded-lg pl-12 pr-12 text-body-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
           />
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 text-primary p-1 hover:bg-surface-container-low rounded-full">
+          <button
+            type="button"
+            onClick={() => setScanOpen(true)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-primary p-1 hover:bg-surface-container-low rounded-full"
+            aria-label="Escanear código"
+          >
             <Icon name="barcode_scanner" />
           </button>
         </div>
@@ -91,6 +98,12 @@ function Products() {
       >
         <Icon name="add" style={{ fontSize: 28 }} />
       </Link>
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={(code, product) => setQ(product?.sku ?? code)}
+      />
     </AppShell>
   );
 }

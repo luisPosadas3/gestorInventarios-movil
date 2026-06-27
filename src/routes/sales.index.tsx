@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/sales/")({
@@ -14,6 +15,7 @@ function Sales() {
   const [received, setReceived] = useState("");
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [confirm, setConfirm] = useState<null | { total: number; received: number; change: number; items: { name: string; qty: number; subtotal: number }[] }>(null);
 
   const cartItems = cart.map((c) => {
@@ -63,7 +65,12 @@ function Sales() {
             placeholder="Buscar producto o SKU..."
             className="flex-1 border-none outline-none bg-transparent text-body-lg"
           />
-          <button className="flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg text-label-lg active:scale-95">
+          <button
+            type="button"
+            onClick={() => setScanOpen(true)}
+            className="flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg text-label-lg active:scale-95"
+            aria-label="Escanear código"
+          >
             <Icon name="barcode_scanner" />
           </button>
         </div>
@@ -219,6 +226,21 @@ function Sales() {
           </div>
         </div>
       )}
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={(code, product) => {
+          if (product) {
+            addToCart(product.id);
+            setQ("");
+            setShowAdd(false);
+          } else {
+            setQ(code);
+            setShowAdd(true);
+          }
+        }}
+      />
     </AppShell>
   );
 }
