@@ -19,6 +19,7 @@ function stockColor(stock: number, min: number) {
 function Products() {
   const { products } = useStore();
   const [q, setQ] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
   const filtered = products.filter(
     (p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()),
   );
