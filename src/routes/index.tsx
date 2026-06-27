@@ -46,7 +46,7 @@ function Dashboard() {
             <Icon name="payments" filled className="text-secondary p-3 bg-secondary-fixed rounded-full" />
             <div>
               <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Valor Total Inventario</p>
-              <p className="text-headline-md text-on-surface font-semibold">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              <p className="text-headline-md text-on-surface font-semibold">${Math.round(totalValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</p>
             </div>
           </div>
         </div>
