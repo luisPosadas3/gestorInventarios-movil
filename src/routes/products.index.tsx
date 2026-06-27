@@ -98,6 +98,12 @@ function Products() {
       >
         <Icon name="add" style={{ fontSize: 28 }} />
       </Link>
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={(code, product) => setQ(product?.sku ?? code)}
+      />
     </AppShell>
   );
 }
