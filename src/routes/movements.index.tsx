@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { startRecording, type Recorder } from "@/lib/recorder";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/movements/")({
