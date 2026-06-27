@@ -21,10 +21,19 @@ function NewProduct() {
     stock: "",
     minStock: "5",
   });
+  const [image, setImage] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +45,7 @@ function NewProduct() {
         sku: form.sku || `SKU-${Date.now().toString().slice(-6)}`,
         description: form.description,
         icon: "category",
+        image: image || undefined,
         purchasePrice: parseFloat(form.purchasePrice),
         salePrice: parseFloat(form.salePrice),
         stock: parseInt(form.stock),
