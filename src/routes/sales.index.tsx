@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/sales/")({
