@@ -30,7 +30,7 @@ function Dashboard() {
           <Icon name="inventory" className="text-primary p-2 bg-primary-fixed rounded-lg w-fit" />
           <div>
             <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Total Productos</p>
-            <p className="text-headline-md text-primary font-semibold">{totalProducts.toLocaleString()}</p>
+            <p className="text-headline-md text-primary font-semibold">{totalProducts}</p>
           </div>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex flex-col justify-between h-32 shadow-sm">
