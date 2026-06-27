@@ -219,6 +219,15 @@ function Movements() {
           </div>
         </div>
       )}
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetected={(code, product) => {
+          setLastScan({ code, matched: !!product });
+          if (product) setProductId(product.id);
+        }}
+      />
     </AppShell>
   );
 }
