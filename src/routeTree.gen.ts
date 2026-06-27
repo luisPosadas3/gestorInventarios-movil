@@ -17,6 +17,7 @@ import { Route as MovementsIndexRouteImport } from './routes/movements.index'
 import { Route as AlertsIndexRouteImport } from './routes/alerts.index'
 import { Route as ProductsNewRouteImport } from './routes/products.new'
 import { Route as MovementsHistoryRouteImport } from './routes/movements.history'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
@@ -58,10 +59,16 @@ const MovementsHistoryRoute = MovementsHistoryRouteImport.update({
   path: '/movements/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/finance': typeof FinanceRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/movements/history': typeof MovementsHistoryRoute
   '/products/new': typeof ProductsNewRoute
   '/alerts/': typeof AlertsIndexRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/finance': typeof FinanceRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/movements/history': typeof MovementsHistoryRoute
   '/products/new': typeof ProductsNewRoute
   '/alerts': typeof AlertsIndexRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/finance': typeof FinanceRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/movements/history': typeof MovementsHistoryRoute
   '/products/new': typeof ProductsNewRoute
   '/alerts/': typeof AlertsIndexRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/finance'
+    | '/api/transcribe'
     | '/movements/history'
     | '/products/new'
     | '/alerts/'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/finance'
+    | '/api/transcribe'
     | '/movements/history'
     | '/products/new'
     | '/alerts'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/finance'
+    | '/api/transcribe'
     | '/movements/history'
     | '/products/new'
     | '/alerts/'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FinanceRoute: typeof FinanceRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
   MovementsHistoryRoute: typeof MovementsHistoryRoute
   ProductsNewRoute: typeof ProductsNewRoute
   AlertsIndexRoute: typeof AlertsIndexRoute
@@ -192,12 +205,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MovementsHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FinanceRoute: FinanceRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
   MovementsHistoryRoute: MovementsHistoryRoute,
   ProductsNewRoute: ProductsNewRoute,
   AlertsIndexRoute: AlertsIndexRoute,
