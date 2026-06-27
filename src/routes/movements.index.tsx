@@ -83,12 +83,41 @@ function Movements() {
   return (
     <AppShell title="Registrar Movimiento">
       <section className="mt-4 flex flex-col items-center justify-center p-6 bg-surface-container-lowest border border-outline-variant rounded-xl text-center">
-        <div className="mb-4 w-28 h-28 rounded-full bg-primary grid place-items-center shadow-lg cursor-pointer active:scale-95 transition-transform">
-          <Icon name="mic" className="text-on-primary" style={{ fontSize: 44 }} />
-        </div>
-        <h2 className="text-headline-sm font-semibold text-on-surface mb-1">Toca para hablar</h2>
+        <button
+          type="button"
+          onClick={handleMicClick}
+          disabled={recState === "processing"}
+          aria-label={recState === "recording" ? "Detener grabación" : "Empezar a hablar"}
+          className={`mb-4 w-28 h-28 rounded-full grid place-items-center shadow-lg active:scale-95 transition-transform ${
+            recState === "recording"
+              ? "bg-error animate-pulse"
+              : recState === "processing"
+                ? "bg-surface-container-high"
+                : "bg-primary"
+          }`}
+        >
+          <Icon
+            name={recState === "processing" ? "progress_activity" : recState === "recording" ? "stop" : "mic"}
+            className={recState === "processing" ? "text-on-surface animate-spin" : "text-on-primary"}
+            style={{ fontSize: 44 }}
+          />
+        </button>
+        <h2 className="text-headline-sm font-semibold text-on-surface mb-1">
+          {recState === "recording" ? "Escuchando…" : recState === "processing" ? "Transcribiendo…" : "Toca para hablar"}
+        </h2>
         <p className="text-on-surface-variant text-body-md italic">(ej: "Entrada 50 martillos")</p>
+
+        {transcript && (
+          <div className="mt-4 w-full p-3 rounded-lg bg-primary-fixed text-on-primary-fixed-variant text-left">
+            <p className="text-label-md text-on-surface-variant mb-1">Reconocido:</p>
+            <p className="text-body-lg font-medium">"{transcript}"</p>
+          </div>
+        )}
+        {voiceError && (
+          <p className="mt-3 text-label-md text-error">{voiceError}</p>
+        )}
       </section>
+
 
       <section className="mt-section-margin flex flex-col gap-stack-gap bg-surface-container-lowest p-container-padding rounded-xl border border-outline-variant">
         <h3 className="text-headline-sm font-semibold">Registro Manual</h3>
