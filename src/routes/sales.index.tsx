@@ -65,7 +65,12 @@ function Sales() {
             placeholder="Buscar producto o SKU..."
             className="flex-1 border-none outline-none bg-transparent text-body-lg"
           />
-          <button className="flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg text-label-lg active:scale-95">
+          <button
+            type="button"
+            onClick={() => setScanOpen(true)}
+            className="flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg text-label-lg active:scale-95"
+            aria-label="Escanear código"
+          >
             <Icon name="barcode_scanner" />
           </button>
         </div>
