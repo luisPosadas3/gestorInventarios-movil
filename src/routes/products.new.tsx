@@ -62,6 +62,37 @@ function NewProduct() {
       </p>
 
       <form onSubmit={handleSave} className="flex flex-col gap-6 pb-32">
+        <Card title="Imagen del Producto" icon="image">
+          <div className="flex items-center gap-4">
+            <div className="w-24 h-24 rounded-lg bg-surface-container border border-outline-variant overflow-hidden grid place-items-center shrink-0">
+              {image ? (
+                <img src={image} alt="Vista previa" className="w-full h-full object-cover" />
+              ) : (
+                <Icon name="add_photo_alternate" className="text-on-surface-variant" style={{ fontSize: 32 }} />
+              )}
+            </div>
+            <div className="flex-1 flex flex-col gap-2">
+              <label className="h-10 px-4 bg-primary text-on-primary rounded-full font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform text-label-lg">
+                <Icon name="upload" style={{ fontSize: 18 }} />
+                {image ? "Cambiar imagen" : "Subir imagen"}
+                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              </label>
+              {image && (
+                <button
+                  type="button"
+                  onClick={() => setImage("")}
+                  className="h-9 px-3 text-error text-label-md font-medium flex items-center justify-center gap-1 hover:bg-error-container rounded-full"
+                >
+                  <Icon name="delete" style={{ fontSize: 16 }} /> Eliminar
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-[11px] text-on-surface-variant leading-tight">
+            Formatos admitidos: JPG, PNG, WEBP. Recomendado 1:1.
+          </p>
+        </Card>
+
         <Card title="Información Básica" icon="info">
           <Field label="Nombre del Producto" required>
             <input
