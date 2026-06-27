@@ -21,6 +21,43 @@ function Movements() {
   const [scanOpen, setScanOpen] = useState(false);
   const [lastScan, setLastScan] = useState<{ code: string; matched: boolean } | null>(null);
 
+  const recorderRef = useRef<Recorder | null>(null);
+  const [recState, setRecState] = useState<"idle" | "recording" | "processing">("idle");
+  const [transcript, setTranscript] = useState<string>("");
+  const [voiceError, setVoiceError] = useState<string>("");
+
+  const handleMicClick = async () => {
+    setVoiceError("");
+    if (recState === "recording") {
+      const rec = recorderRef.current;
+      if (!rec) return;
+      recorderRef.current = null;
+      setRecState("processing");
+      try {
+        const blob = await rec.stop();
+        const fd = new FormData();
+        fd.append("file", blob, "recording.wav");
+        const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error?.message || data?.error || "Error de transcripción");
+        setTranscript((data.text || "").trim() || "(sin voz detectada)");
+      } catch (e) {
+        setVoiceError(e instanceof Error ? e.message : "Error al transcribir");
+      } finally {
+        setRecState("idle");
+      }
+      return;
+    }
+    try {
+      const rec = await startRecording();
+      recorderRef.current = rec;
+      setTranscript("");
+      setRecState("recording");
+    } catch {
+      setVoiceError("No se pudo acceder al micrófono.");
+    }
+  };
+
   const product = products.find((p) => p.id === productId);
   const unit = parseFloat(price) || product?.salePrice || 0;
   const total = unit * qty;
