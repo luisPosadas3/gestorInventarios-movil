@@ -35,7 +35,12 @@ function Products() {
             placeholder="Buscar productos..."
             className="w-full h-12 bg-surface-container-lowest border border-outline rounded-lg pl-12 pr-12 text-body-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
           />
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 text-primary p-1 hover:bg-surface-container-low rounded-full">
+          <button
+            type="button"
+            onClick={() => setScanOpen(true)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-primary p-1 hover:bg-surface-container-low rounded-full"
+            aria-label="Escanear código"
+          >
             <Icon name="barcode_scanner" />
           </button>
         </div>
