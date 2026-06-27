@@ -15,6 +15,7 @@ function Sales() {
   const [received, setReceived] = useState("");
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [confirm, setConfirm] = useState<null | { total: number; received: number; change: number; items: { name: string; qty: number; subtotal: number }[] }>(null);
 
   const cartItems = cart.map((c) => {
