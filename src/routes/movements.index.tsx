@@ -17,6 +17,8 @@ function Movements() {
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState("");
   const [confirm, setConfirm] = useState<null | { product: typeof products[number]; qty: number; type: "entrada" | "salida"; unit: number }>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [lastScan, setLastScan] = useState<{ code: string; matched: boolean } | null>(null);
 
   const product = products.find((p) => p.id === productId);
   const unit = parseFloat(price) || product?.salePrice || 0;
