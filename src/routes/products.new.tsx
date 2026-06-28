@@ -1,18 +1,23 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { useStore } from "@/lib/store";
+import { createProduct, updateProduct, getProductById } from "@/services/products.service";
 
 export const Route = createFileRoute("/products/new")({
   head: () => ({ meta: [{ title: "Registrar Producto" }] }),
+  validateSearch: (search: Record<string, unknown>): { editId?: string } => ({
+    editId: typeof search.editId === "string" ? search.editId : undefined,
+  }),
   component: NewProduct,
 });
 
 function NewProduct() {
-  const { addProduct } = useStore();
   const navigate = useNavigate();
+  const { editId } = useSearch({ from: "/products/new" });
+  const isEditing = Boolean(editId);
+
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -23,7 +28,26 @@ function NewProduct() {
   });
   const [image, setImage] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEditing);
   const [scanOpen, setScanOpen] = useState(false);
+
+  useEffect(() => {
+    if (!editId) return;
+    getProductById(editId)
+      .then((p) => {
+        setForm({
+          name: p.name,
+          sku: p.sku,
+          purchasePrice: String(p.purchasePrice),
+          salePrice: String(p.salePrice),
+          stock: String(p.stock),
+          minStock: String(p.minStock),
+        });
+        setImage(p.image ?? "");
+      })
+      .catch((err) => alert(err.message))
+      .finally(() => setLoading(false));
+  }, [editId]);
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: e.target.value });
@@ -36,7 +60,7 @@ function NewProduct() {
     reader.readAsDataURL(file);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !form.name.trim() ||
@@ -46,26 +70,47 @@ function NewProduct() {
       !form.stock
     )
       return;
+
     setSaving(true);
-    setTimeout(() => {
-      addProduct({
-        name: form.name.trim(),
+    try {
+      const payload = {
         sku: form.sku.trim(),
-        icon: "category",
-        image: image || undefined,
-        purchasePrice: parseFloat(form.purchasePrice),
-        salePrice: parseFloat(form.salePrice),
-        stock: parseInt(form.stock),
-        minStock: parseInt(form.minStock || "5"),
-      });
+        name: form.name.trim(),
+        image: image || null,
+        purchasePrice: Number(form.purchasePrice),
+        salePrice: Number(form.salePrice),
+        stock: Number(form.stock),
+        minStock: Number(form.minStock || 5),
+      };
+
+      if (isEditing && editId) {
+        await updateProduct(editId, payload);
+      } else {
+        await createProduct(payload);
+      }
+
       navigate({ to: "/products" });
-    }, 700);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Error al guardar producto");
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <AppShell title="Editar Producto" back hideNav>
+        <p className="text-body-md text-on-surface-variant text-center py-16">Cargando...</p>
+      </AppShell>
+    );
+  }
+
   return (
-    <AppShell title="Registrar Producto" back hideNav>
+    <AppShell title={isEditing ? "Editar Producto" : "Registrar Producto"} back hideNav>
       <p className="text-body-md text-on-surface-variant mt-section-margin mb-6">
-        Ingrese los detalles del nuevo artículo para integrarlo al inventario operativo.
+        {isEditing
+          ? "Modifica los datos del producto y guarda los cambios."
+          : "Ingrese los detalles del nuevo artículo para integrarlo al inventario operativo."}
       </p>
 
       <form onSubmit={handleSave} className="flex flex-col gap-6 pb-32">
@@ -181,7 +226,7 @@ function NewProduct() {
             <Icon name="inventory_2" style={{ fontSize: 18 }} /> Control de Inventario
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Stock Inicial" required>
+            <Field label={isEditing ? "Stock Actual" : "Stock Inicial"} required>
               <input
                 required
                 type="number"
@@ -217,7 +262,7 @@ function NewProduct() {
             className="w-full h-12 bg-primary text-on-primary rounded-full font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md disabled:opacity-70"
           >
             <Icon name={saving ? "sync" : "save"} className={saving ? "animate-spin" : ""} />
-            {saving ? "Guardando..." : "Guardar Producto"}
+            {saving ? "Guardando..." : isEditing ? "Guardar Cambios" : "Guardar Producto"}
           </button>
         </footer>
       </form>

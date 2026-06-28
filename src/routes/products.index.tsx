@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import type { Product } from "@/lib/mock-data";
-import { getProducts, mapApiProductToProduct } from "@/services/products.service";
+import { getProducts, deleteProduct, mapApiProductToProduct } from "@/services/products.service";
 
 export const Route = createFileRoute("/products/")({
   head: () => ({ meta: [{ title: "Productos — Gestor de Inventario" }] }),
@@ -24,33 +24,36 @@ function Products() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
+  const navigate = useNavigate();
+  const loadProducts = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getProducts();
+      setProducts(data.map(mapApiProductToProduct));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar productos");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      await deleteProduct(deleteId);
+      await loadProducts();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al eliminar");
+    } finally {
+      setDeleteId(null);
+    }
+  };
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadProducts() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getProducts();
-        if (!cancelled) {
-          setProducts(data.map(mapApiProductToProduct));
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Error al cargar productos");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
     loadProducts();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const filtered = products.filter(
@@ -126,10 +129,16 @@ function Products() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 items-center shrink-0">
-                  <button className="text-on-surface-variant hover:text-primary transition-colors p-1">
+                  <button
+                    onClick={() => navigate({ to: "/products/new", search: { editId: p.id } })}
+                    className="text-on-surface-variant hover:text-primary transition-colors p-1"
+                  >
                     <Icon name="edit" style={{ fontSize: 20 }} />
                   </button>
-                  <button className="text-on-surface-variant hover:text-error transition-colors p-1">
+                  <button
+                    onClick={() => setDeleteId(p.id)}
+                    className="text-on-surface-variant hover:text-error transition-colors p-1"
+                  >
                     <Icon name="delete" style={{ fontSize: 20 }} />
                   </button>
                 </div>
@@ -154,6 +163,35 @@ function Products() {
         onClose={() => setScanOpen(false)}
         onDetected={(code, product) => setQ(product?.sku ?? code)}
       />
+      {deleteId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-sm p-6">
+            <h3 className="text-headline-sm font-semibold text-on-surface mb-2">
+              ¿Eliminar producto?
+            </h3>
+
+            <p className="text-body-md text-on-surface-variant mb-6">
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-lg bg-error text-on-error hover:opacity-90"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

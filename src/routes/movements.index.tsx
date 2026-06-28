@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { startRecording, type Recorder } from "@/lib/recorder";
 import { useStore } from "@/lib/store";
+import { getProducts, mapApiProductToProduct, type ApiProduct } from "../services/products.service";
+import { createMovement } from "../services/movements.service";
 
 export const Route = createFileRoute("/movements/")({
   head: () => ({ meta: [{ title: "Movimientos" }] }),
@@ -12,24 +14,117 @@ export const Route = createFileRoute("/movements/")({
 });
 
 function Movements() {
-  const { products, addMovement } = useStore();
+  const { updateStock } = useStore();
+
+  // ── Productos desde API ──────────────────────────────────────────
+  const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    getProducts()
+      .then(setApiProducts)
+      .finally(() => setLoadingProducts(false));
+  }, []);
+
+  // ── Buscador de producto ─────────────────────────────────────────
+  const [search, setSearch] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<ApiProduct | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const filtered =
+    search.length >= 1
+      ? apiProducts
+          .filter(
+            (p) =>
+              p.name.toLowerCase().includes(search.toLowerCase()) ||
+              p.sku.toLowerCase().includes(search.toLowerCase()),
+          )
+          .slice(0, 6)
+      : [];
+
+  const selectProduct = (p: ApiProduct) => {
+    setSelectedProduct(p);
+    setSearch(`${p.sku} — ${p.name}`);
+    setShowDropdown(false);
+    // Auto-fill precio según tipo
+    setPrice(type === "entrada" ? p.purchasePrice.toFixed(2) : p.salePrice.toFixed(2));
+  };
+
+  // Cerrar dropdown al click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // ── Formulario ───────────────────────────────────────────────────
   const [type, setType] = useState<"entrada" | "salida">("entrada");
-  const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState("");
+  const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<null | {
-    product: (typeof products)[number];
+    product: ApiProduct;
     qty: number;
     type: "entrada" | "salida";
     unit: number;
   }>(null);
-  const [scanOpen, setScanOpen] = useState(false);
-  const [lastScan, setLastScan] = useState<{ code: string; matched: boolean } | null>(null);
 
+  // Al cambiar tipo, actualiza precio auto si hay producto seleccionado
+  useEffect(() => {
+    if (selectedProduct) {
+      setPrice(
+        type === "entrada"
+          ? selectedProduct.purchasePrice.toFixed(2)
+          : selectedProduct.salePrice.toFixed(2),
+      );
+    }
+  }, [type, selectedProduct]);
+
+  const unit = parseFloat(price) || 0;
+  const total = unit * qty;
+
+  const handleConfirm = () => {
+    if (!selectedProduct) return;
+    setConfirm({ product: selectedProduct, qty, type, unit });
+  };
+
+  const finalize = async () => {
+    if (!confirm) return;
+    setSaving(true);
+    try {
+      await createMovement({
+        productId: confirm.product.id,
+        productName: confirm.product.name,
+        type: confirm.type,
+        subtype: "manual",
+        quantity: confirm.qty,
+        price: confirm.unit,
+        note: confirm.type === "entrada" ? "Registro manual" : "Salida manual",
+      });
+      // Reflejo inmediato en store local
+      updateStock(confirm.product.id, confirm.type === "entrada" ? confirm.qty : -confirm.qty);
+      setConfirm(null);
+      setQty(1);
+      setPrice("");
+      setSearch("");
+      setSelectedProduct(null);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Voz ──────────────────────────────────────────────────────────
   const recorderRef = useRef<Recorder | null>(null);
   const [recState, setRecState] = useState<"idle" | "recording" | "processing">("idle");
-  const [transcript, setTranscript] = useState<string>("");
-  const [voiceError, setVoiceError] = useState<string>("");
+  const [transcript, setTranscript] = useState("");
+  const [voiceError, setVoiceError] = useState("");
 
   const handleMicClick = async () => {
     setVoiceError("");
@@ -64,30 +159,13 @@ function Movements() {
     }
   };
 
-  const product = products.find((p) => p.id === productId);
-  const unit = parseFloat(price) || product?.salePrice || 0;
-  const total = unit * qty;
-
-  const handleConfirm = () => {
-    if (!product) return;
-    setConfirm({ product, qty, type, unit });
-  };
-
-  const finalize = () => {
-    addMovement({
-      productId: confirm!.product.id,
-      productName: confirm!.product.name,
-      type: confirm!.type,
-      quantity: confirm!.qty,
-      note: confirm!.type === "entrada" ? "Registro manual" : "Salida manual",
-    });
-    setConfirm(null);
-    setQty(1);
-    setPrice("");
-  };
+  // ── Scanner ───────────────────────────────────────────────────────
+  const [scanOpen, setScanOpen] = useState(false);
+  const [lastScan, setLastScan] = useState<{ code: string; matched: boolean } | null>(null);
 
   return (
     <AppShell title="Registrar Movimiento">
+      {/* Sección voz — sin cambios */}
       <section className="mt-4 flex flex-col items-center justify-center p-6 bg-surface-container-lowest border border-outline-variant rounded-xl text-center">
         <button
           type="button"
@@ -124,7 +202,6 @@ function Movements() {
               : "Toca para hablar"}
         </h2>
         <p className="text-on-surface-variant text-body-md italic">(ej: "Entrada 50 martillos")</p>
-
         {transcript && (
           <div className="mt-4 w-full p-3 rounded-lg bg-primary-fixed text-on-primary-fixed-variant text-left">
             <p className="text-label-md text-on-surface-variant mb-1">Reconocido:</p>
@@ -134,9 +211,11 @@ function Movements() {
         {voiceError && <p className="mt-3 text-label-md text-error">{voiceError}</p>}
       </section>
 
+      {/* Registro manual */}
       <section className="mt-section-margin flex flex-col gap-stack-gap bg-surface-container-lowest p-container-padding rounded-xl border border-outline-variant">
         <h3 className="text-headline-sm font-semibold">Registro Manual</h3>
 
+        {/* Toggle entrada/salida */}
         <div className="flex bg-surface-container p-1 rounded-lg">
           <button
             onClick={() => setType("entrada")}
@@ -158,21 +237,112 @@ function Movements() {
           </button>
         </div>
 
-        <label className="flex flex-col gap-1">
+        {/* Buscador de producto */}
+        <div ref={searchRef} className="relative flex flex-col gap-1">
           <span className="text-label-md text-on-surface-variant px-1">Producto</span>
-          <select
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-            className="w-full h-11 px-3 bg-surface border border-outline rounded-lg outline-none focus:ring-2 focus:ring-primary"
+          <div
+            className={`flex items-center bg-surface border rounded-lg h-11 px-3 gap-2 transition-all ${
+              showDropdown ? "border-primary ring-2 ring-primary" : "border-outline"
+            }`}
           >
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {p.sku}
-              </option>
-            ))}
-          </select>
-        </label>
+            <Icon
+              name="search"
+              className="text-on-surface-variant shrink-0"
+              style={{ fontSize: 18 }}
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSelectedProduct(null);
+                setShowDropdown(true);
+                setPrice("");
+              }}
+              onFocus={() => {
+                if (search) setShowDropdown(true);
+              }}
+              placeholder={loadingProducts ? "Cargando productos…" : "Buscar por nombre o SKU…"}
+              disabled={loadingProducts}
+              className="flex-1 bg-transparent outline-none text-body-md"
+            />
+            {selectedProduct && (
+              <Icon
+                name="check_circle"
+                className="text-secondary shrink-0"
+                style={{ fontSize: 18 }}
+              />
+            )}
+            {search && !selectedProduct && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedProduct(null);
+                  setShowDropdown(false);
+                  setPrice("");
+                }}
+                className="text-on-surface-variant"
+              >
+                <Icon name="close" style={{ fontSize: 18 }} />
+              </button>
+            )}
+          </div>
 
+          {/* Dropdown resultados */}
+          {showDropdown && filtered.length > 0 && (
+            <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg overflow-hidden">
+              {filtered.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onMouseDown={() => selectProduct(p)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-container text-left transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 grid place-items-center shrink-0">
+                    <Icon name="inventory_2" className="text-primary" style={{ fontSize: 16 }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-label-lg font-semibold truncate">{p.name}</p>
+                    <p className="text-label-md text-on-surface-variant font-mono">{p.sku}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-label-md text-on-surface-variant">
+                      {type === "entrada" ? "Compra" : "Venta"}
+                    </p>
+                    <p className="text-label-lg font-mono font-semibold text-primary">
+                      ${(type === "entrada" ? p.purchasePrice : p.salePrice).toFixed(2)}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {showDropdown && search.length >= 1 && filtered.length === 0 && (
+            <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 text-center text-on-surface-variant text-body-md shadow-lg">
+              Sin resultados para "{search}"
+            </div>
+          )}
+
+          {/* Info del producto seleccionado */}
+          {selectedProduct && (
+            <div className="flex items-center gap-3 px-3 py-2 bg-secondary/10 rounded-lg border border-secondary/20">
+              <Icon name="check_circle" className="text-secondary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-label-md text-secondary font-semibold truncate">
+                  {selectedProduct.name}
+                </p>
+                <p className="text-label-md text-on-surface-variant">
+                  Stock actual:{" "}
+                  <span className="font-mono font-semibold">{selectedProduct.stock}</span> u
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Cantidad y precio */}
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
             <span className="text-label-md text-on-surface-variant px-1">Cantidad</span>
@@ -200,13 +370,18 @@ function Movements() {
             </div>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-label-md text-on-surface-variant px-1">Precio unit.</span>
+            <span className="text-label-md text-on-surface-variant px-1">
+              Precio unit.{" "}
+              <span className="text-outline text-label-sm">
+                ({type === "entrada" ? "compra" : "venta"})
+              </span>
+            </span>
             <input
               type="number"
               step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder={product?.salePrice.toFixed(2)}
+              placeholder="0.00"
               className="w-full h-11 px-3 bg-surface border border-outline rounded-lg outline-none focus:ring-2 focus:ring-primary font-mono"
             />
             <span className="text-label-md text-primary bg-primary-fixed px-2 py-0.5 rounded-full self-end">
@@ -217,12 +392,14 @@ function Movements() {
 
         <button
           onClick={handleConfirm}
-          className="mt-2 w-full h-11 bg-primary text-on-primary rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md"
+          disabled={!selectedProduct}
+          className="mt-2 w-full h-11 bg-primary text-on-primary rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md disabled:opacity-40 disabled:pointer-events-none"
         >
           <Icon name="check_circle" /> Confirmar Movimiento
         </button>
       </section>
 
+      {/* Cards inferiores — sin cambios */}
       <section className="mt-section-margin grid grid-cols-2 gap-3">
         <Link
           to="/movements/history"
@@ -259,6 +436,7 @@ function Movements() {
         </section>
       )}
 
+      {/* Modal confirmación */}
       {confirm && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden">
@@ -274,13 +452,16 @@ function Movements() {
             <div className="p-container-padding space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-xl border border-outline-variant">
                 <div className="w-12 h-12 rounded-lg bg-surface-container-highest grid place-items-center">
-                  <Icon name={confirm.product.icon} className="text-primary" />
+                  <Icon name="inventory_2" className="text-primary" />
                 </div>
                 <div>
                   <span className="text-label-md text-on-surface-variant uppercase tracking-wider block">
                     Producto
                   </span>
                   <span className="text-headline-sm font-semibold">{confirm.product.name}</span>
+                  <span className="text-label-md text-on-surface-variant font-mono block">
+                    {confirm.product.sku}
+                  </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -325,13 +506,19 @@ function Movements() {
             <div className="p-container-padding flex flex-col gap-2">
               <button
                 onClick={finalize}
-                className="w-full h-11 bg-primary text-on-primary rounded-lg text-label-lg flex items-center justify-center gap-2 active:scale-95 shadow-md"
+                disabled={saving}
+                className="w-full h-11 bg-primary text-on-primary rounded-lg text-label-lg flex items-center justify-center gap-2 active:scale-95 shadow-md disabled:opacity-60"
               >
-                <Icon name="check_circle" /> Confirmar y Guardar
+                <Icon
+                  name={saving ? "progress_activity" : "check_circle"}
+                  className={saving ? "animate-spin" : ""}
+                />
+                {saving ? "Guardando…" : "Confirmar y Guardar"}
               </button>
               <button
                 onClick={() => setConfirm(null)}
-                className="w-full h-11 border border-outline text-on-surface-variant rounded-lg text-label-lg hover:bg-surface-container-high"
+                disabled={saving}
+                className="w-full h-11 border border-outline text-on-surface-variant rounded-lg text-label-lg hover:bg-surface-container-high disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -345,7 +532,10 @@ function Movements() {
         onClose={() => setScanOpen(false)}
         onDetected={(code, product) => {
           setLastScan({ code, matched: !!product });
-          if (product) setProductId(product.id);
+          if (product) {
+            const found = apiProducts.find((p) => p.id === product.id);
+            if (found) selectProduct(found);
+          }
         }}
       />
     </AppShell>

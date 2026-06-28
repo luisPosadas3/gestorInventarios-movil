@@ -16,4 +16,19 @@ model Product {
   salePrice      Float
   stock          Int
   minStock       Int
+  movements Movement[]
+}
+
+model Movement {
+  id          String   @id @default(uuid())
+  productId   String
+  productName String
+  type        String   // "entrada" | "salida"
+  subtype     String   @default("manual") // "manual" | "venta" (placeholder)
+  quantity    Int
+  price       Float    @default(0)
+  note        String   @default("")
+  timestamp   DateTime @default(now())
+
+  product     Product  @relation(fields: [productId], references: [id])
 }

@@ -1,48 +1,67 @@
 import type { Product } from "@/lib/mock-data";
-
-const API_BASE = "http://localhost:3001";
+const API_URL = "http://localhost:3001/products";
 
 export type ApiProduct = {
   id: string;
   sku: string;
   name: string;
+  image: string | null;
+  purchasePrice: number;
+  salePrice: number;
   stock: number;
-  price: number;
-};
-
-export type CreateProductInput = {
-  sku: string;
-  name: string;
-  stock: number;
-  price: number;
+  minStock: number;
 };
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  const json = await response.json();
+
   if (!response.ok) {
-    let message = `Error ${response.status}`;
-    try {
-      const body = await response.json();
-      if (body?.error) message = String(body.error);
-    } catch {
-      // ignore JSON parse errors
-    }
-    throw new Error(message);
+    throw new Error(json.error || `Error ${response.status}`);
   }
-  return response.json() as Promise<T>;
+
+  return json as T;
 }
 
 export async function getProducts(): Promise<ApiProduct[]> {
-  const response = await fetch(`${API_BASE}/products`);
-  return handleResponse<ApiProduct[]>(response);
+  const res = await fetch(API_URL);
+  return handleResponse<ApiProduct[]>(res);
 }
 
-export async function createProduct(data: CreateProductInput): Promise<ApiProduct> {
-  const response = await fetch(`${API_BASE}/products`, {
+export async function createProduct(data: Omit<ApiProduct, "id">): Promise<ApiProduct> {
+  const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(data),
   });
-  return handleResponse<ApiProduct>(response);
+
+  return handleResponse<ApiProduct>(res);
+}
+
+export async function updateProduct(id: string, data: Partial<ApiProduct>): Promise<ApiProduct> {
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<ApiProduct>(res);
+}
+
+export async function deleteProduct(id: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+  });
+
+  return handleResponse<{ message: string }>(res);
+}
+
+export async function getProductById(id: string): Promise<ApiProduct> {
+  const res = await fetch(`${API_URL}/${id}`);
+  return handleResponse<ApiProduct>(res);
 }
 
 export function mapApiProductToProduct(api: ApiProduct): Product {
@@ -50,10 +69,13 @@ export function mapApiProductToProduct(api: ApiProduct): Product {
     id: api.id,
     sku: api.sku,
     name: api.name,
-    icon: "inventory_2",
-    purchasePrice: api.price,
-    salePrice: api.price,
+    image: api.image ?? undefined,
+    purchasePrice: api.purchasePrice,
+    salePrice: api.salePrice,
     stock: api.stock,
-    minStock: 10,
+    minStock: api.minStock,
+
+    // Mientras quitamos completamente mock-data
+    icon: "inventory_2",
   };
 }

@@ -1,23 +1,25 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import {
-  initialMovements,
-  initialProducts,
-  initialSales,
-  type Movement,
-  type Product,
-  type Sale,
-} from "./mock-data";
+import { initialProducts, initialSales, type Product, type Sale } from "./mock-data";
+import { createMovement, mapApiMovementToMovement } from "../services/movements.service";
 
 type CartItem = { productId: string; qty: number };
 
 type Store = {
   products: Product[];
-  movements: Movement[];
   sales: Sale[];
   cart: CartItem[];
   addProduct: (p: Omit<Product, "id">) => void;
   updateStock: (productId: string, delta: number) => void;
-  addMovement: (m: Omit<Movement, "id" | "timestamp">) => void;
+  // Ahora retorna Promise y refresca desde BD
+  addMovement: (m: {
+    productId: string;
+    productName: string;
+    type: "entrada" | "salida";
+    quantity: number;
+    price?: number;
+    note?: string;
+    subtype?: "manual" | "venta";
+  }) => Promise<void>;
   addToCart: (productId: string) => void;
   setCartQty: (productId: string, qty: number) => void;
   removeFromCart: (productId: string) => void;
@@ -29,7 +31,6 @@ const StoreContext = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [movements, setMovements] = useState<Movement[]>(initialMovements);
   const [sales, setSales] = useState<Sale[]>(initialSales);
   const [cart, setCart] = useState<CartItem[]>([
     { productId: "p1", qty: 2 },
@@ -46,9 +47,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const addMovement: Store["addMovement"] = (m) => {
-    const id = `MOV-${Math.floor(Math.random() * 9000 + 1000)}`;
-    setMovements((prev) => [{ ...m, id, timestamp: new Date().toISOString() }, ...prev]);
+  // Ahora llama a la API. El stock lo actualiza el servidor en transacción.
+  const addMovement: Store["addMovement"] = async (m) => {
+    await createMovement({
+      productId: m.productId,
+      productName: m.productName,
+      type: m.type,
+      subtype: m.subtype ?? "manual",
+      quantity: m.quantity,
+      price: m.price ?? 0,
+      note: m.note ?? (m.type === "entrada" ? "Registro manual" : "Salida manual"),
+    });
+    // Actualiza stock local para reflejo inmediato en UI sin refetch de productos
     updateStock(m.productId, m.type === "entrada" ? m.quantity : -m.quantity);
   };
 
@@ -96,7 +106,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     <StoreContext.Provider
       value={{
         products,
-        movements,
         sales,
         cart,
         addProduct,
