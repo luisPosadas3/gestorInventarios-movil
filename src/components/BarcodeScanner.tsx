@@ -7,6 +7,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onDetected: (code: string, product: Product | null) => void;
+  mode?: "lookup" | "capture";
 };
 
 // Minimal types for BarcodeDetector (not in TS lib by default)
@@ -15,7 +16,7 @@ type BarcodeDetectorLike = {
 };
 type BarcodeDetectorCtor = new (opts?: { formats?: string[] }) => BarcodeDetectorLike;
 
-export function BarcodeScanner({ open, onClose, onDetected }: Props) {
+export function BarcodeScanner({ open, onClose, onDetected, mode = "lookup" }: Props) {
   const { products } = useStore();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -53,7 +54,8 @@ export function BarcodeScanner({ open, onClose, onDetected }: Props) {
           await videoRef.current.play().catch(() => {});
         }
 
-        const Ctor = (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector;
+        const Ctor = (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor })
+          .BarcodeDetector;
         if (!Ctor) return; // no detector → user can scan visually or type code
 
         const detector = new Ctor({
@@ -92,6 +94,12 @@ export function BarcodeScanner({ open, onClose, onDetected }: Props) {
   }, [open]);
 
   const handleCode = (raw: string) => {
+    if (mode === "capture") {
+      onDetected(raw, null);
+      onClose();
+      return;
+    }
+
     const found =
       products.find((p) => p.sku.toLowerCase() === raw.toLowerCase()) ||
       products.find((p) => p.sku.toLowerCase().includes(raw.toLowerCase())) ||
@@ -114,13 +122,21 @@ export function BarcodeScanner({ open, onClose, onDetected }: Props) {
         <h2 className="text-headline-sm font-semibold flex items-center gap-2">
           <Icon name="barcode_scanner" /> Escanear código
         </h2>
-        <button onClick={onClose} className="w-10 h-10 grid place-items-center rounded-full bg-white/10 active:scale-95">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 grid place-items-center rounded-full bg-white/10 active:scale-95"
+        >
           <Icon name="close" />
         </button>
       </div>
 
       <div className="relative flex-1 overflow-hidden">
-        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover"
+          playsInline
+          muted
+        />
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
           <div className="w-[78%] aspect-[3/2] rounded-2xl border-2 border-primary/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
         </div>
@@ -146,7 +162,11 @@ export function BarcodeScanner({ open, onClose, onDetected }: Props) {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary-container text-on-secondary-container">
                 <div className="w-12 h-12 rounded-lg bg-white/50 grid place-items-center overflow-hidden shrink-0">
                   {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <Icon name={product.icon} />
                   )}
@@ -193,7 +213,10 @@ export function BarcodeScanner({ open, onClose, onDetected }: Props) {
               placeholder="Ingresar código manualmente"
               className="flex-1 h-11 px-3 bg-surface-container-low border border-outline rounded-lg outline-none font-mono"
             />
-            <button type="submit" className="h-11 px-4 bg-primary text-on-primary rounded-lg text-label-lg">
+            <button
+              type="submit"
+              className="h-11 px-4 bg-primary text-on-primary rounded-lg text-label-lg"
+            >
               Buscar
             </button>
           </form>

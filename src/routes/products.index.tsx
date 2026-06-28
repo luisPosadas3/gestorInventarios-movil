@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { useStore } from "@/lib/store";
+import type { Product } from "@/lib/mock-data";
+import { getProducts, mapApiProductToProduct } from "@/services/products.service";
 
 export const Route = createFileRoute("/products/")({
   head: () => ({ meta: [{ title: "Productos — Gestor de Inventario" }] }),
@@ -12,23 +13,60 @@ export const Route = createFileRoute("/products/")({
 
 function stockColor(stock: number, min: number) {
   if (stock === 0 || stock < min * 0.4) return { text: "text-error", border: "border-l-error" };
-  if (stock < min) return { text: "text-tertiary-fixed-dim", border: "border-l-tertiary-fixed-dim" };
+  if (stock < min)
+    return { text: "text-tertiary-fixed-dim", border: "border-l-tertiary-fixed-dim" };
   return { text: "text-primary", border: "border-l-secondary" };
 }
 
 function Products() {
-  const { products } = useStore();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProducts() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getProducts();
+        if (!cancelled) {
+          setProducts(data.map(mapApiProductToProduct));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Error al cargar productos");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filtered = products.filter(
-    (p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()),
+    (p) =>
+      p.name.toLowerCase().includes(q.toLowerCase()) ||
+      p.sku.toLowerCase().includes(q.toLowerCase()),
   );
 
   return (
     <AppShell>
       <div className="sticky top-[44px] bg-background pt-3 pb-3 z-30 -mx-container-padding px-container-padding">
         <div className="relative">
-          <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <Icon
+            name="search"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
+          />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -54,41 +92,53 @@ function Products() {
       </div>
 
       <div className="flex flex-col gap-stack-gap">
-        {filtered.map((p) => {
-          const c = stockColor(p.stock, p.minStock);
-          return (
-            <div
-              key={p.id}
-              className={`bg-surface-container-lowest border border-outline-variant border-l-4 ${c.border} rounded-xl p-container-padding flex items-center gap-3 hover:shadow-md transition-shadow`}
-            >
-              <div className="w-14 h-14 rounded-lg bg-surface-container grid place-items-center shrink-0 overflow-hidden">
-                {p.image ? (
-                  <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Icon name={p.icon} className="text-primary" style={{ fontSize: 28 }} />
-                )}
-              </div>
-              <div className="flex-grow min-w-0">
-                <h3 className="text-label-lg font-semibold truncate text-on-surface">{p.name}</h3>
-                <p className="text-label-md text-on-surface-variant font-mono">SKU: {p.sku}</p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                  <p className={`text-body-md font-bold ${c.text}`}>Stock: {p.stock} u</p>
-                  <p className="text-label-md text-on-surface-variant">
-                    Venta: <span className="text-primary font-semibold">${p.salePrice.toFixed(2)}</span>
-                  </p>
+        {loading && (
+          <p className="text-body-md text-on-surface-variant text-center py-8">
+            Cargando productos...
+          </p>
+        )}
+        {error && !loading && <p className="text-body-md text-error text-center py-8">{error}</p>}
+        {!loading &&
+          !error &&
+          filtered.map((p) => {
+            const c = stockColor(p.stock, p.minStock);
+            return (
+              <div
+                key={p.id}
+                className={`bg-surface-container-lowest border border-outline-variant border-l-4 ${c.border} rounded-xl p-container-padding flex items-center gap-3 hover:shadow-md transition-shadow`}
+              >
+                <div className="w-14 h-14 rounded-lg bg-surface-container grid place-items-center shrink-0 overflow-hidden">
+                  {p.image ? (
+                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Icon name={p.icon} className="text-primary" style={{ fontSize: 28 }} />
+                  )}
+                </div>
+                <div className="flex-grow min-w-0">
+                  <h3 className="text-label-lg font-semibold truncate text-on-surface">{p.name}</h3>
+                  <p className="text-label-md text-on-surface-variant font-mono">SKU: {p.sku}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                    <p className={`text-body-md font-bold ${c.text}`}>Stock: {p.stock} u</p>
+                    <p className="text-label-md text-on-surface-variant">
+                      Venta:{" "}
+                      <span className="text-primary font-semibold">${p.salePrice.toFixed(2)}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 items-center shrink-0">
+                  <button className="text-on-surface-variant hover:text-primary transition-colors p-1">
+                    <Icon name="edit" style={{ fontSize: 20 }} />
+                  </button>
+                  <button className="text-on-surface-variant hover:text-error transition-colors p-1">
+                    <Icon name="delete" style={{ fontSize: 20 }} />
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 items-center shrink-0">
-                <button className="text-on-surface-variant hover:text-primary transition-colors p-1">
-                  <Icon name="edit" style={{ fontSize: 20 }} />
-                </button>
-                <button className="text-on-surface-variant hover:text-error transition-colors p-1">
-                  <Icon name="delete" style={{ fontSize: 20 }} />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        {!loading && !error && filtered.length === 0 && (
+          <p className="text-body-md text-on-surface-variant text-center py-8">No hay productos</p>
+        )}
       </div>
 
       <Link

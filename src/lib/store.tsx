@@ -1,5 +1,12 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { initialMovements, initialProducts, initialSales, type Movement, type Product, type Sale } from "./mock-data";
+import {
+  initialMovements,
+  initialProducts,
+  initialSales,
+  type Movement,
+  type Product,
+  type Sale,
+} from "./mock-data";
 
 type CartItem = { productId: string; qty: number };
 
@@ -34,7 +41,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const updateStock: Store["updateStock"] = (productId, delta) => {
-    setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, stock: Math.max(0, p.stock + delta) } : p)));
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, stock: Math.max(0, p.stock + delta) } : p)),
+    );
   };
 
   const addMovement: Store["addMovement"] = (m) => {
@@ -46,13 +55,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addToCart: Store["addToCart"] = (productId) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.productId === productId);
-      if (existing) return prev.map((i) => (i.productId === productId ? { ...i, qty: i.qty + 1 } : i));
+      if (existing)
+        return prev.map((i) => (i.productId === productId ? { ...i, qty: i.qty + 1 } : i));
       return [...prev, { productId, qty: 1 }];
     });
   };
 
   const setCartQty: Store["setCartQty"] = (productId, qty) => {
-    setCart((prev) => prev.map((i) => (i.productId === productId ? { ...i, qty: Math.max(1, qty) } : i)));
+    setCart((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, qty: Math.max(1, qty) } : i)),
+    );
   };
 
   const removeFromCart: Store["removeFromCart"] = (productId) => {
@@ -67,7 +79,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return { productId: i.productId, name: p.name, qty: i.qty, price: p.salePrice };
     });
     const total = items.reduce((s, i) => s + i.qty * i.price, 0);
-    const sale: Sale = { id: `ORD-${Math.floor(Math.random() * 90000 + 10000)}`, items, total, received, timestamp: new Date().toISOString() };
+    const sale: Sale = {
+      id: `ORD-${Math.floor(Math.random() * 90000 + 10000)}`,
+      items,
+      total,
+      received,
+      timestamp: new Date().toISOString(),
+    };
     setSales((prev) => [sale, ...prev]);
     items.forEach((i) => updateStock(i.productId, -i.qty));
     setCart([]);
@@ -75,7 +93,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <StoreContext.Provider value={{ products, movements, sales, cart, addProduct, updateStock, addMovement, addToCart, setCartQty, removeFromCart, clearCart, completeSale }}>
+    <StoreContext.Provider
+      value={{
+        products,
+        movements,
+        sales,
+        cart,
+        addProduct,
+        updateStock,
+        addMovement,
+        addToCart,
+        setCartQty,
+        removeFromCart,
+        clearCart,
+        completeSale,
+      }}
+    >
       {children}
     </StoreContext.Provider>
   );

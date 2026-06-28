@@ -11,12 +11,18 @@ export const Route = createFileRoute("/sales/")({
 });
 
 function Sales() {
-  const { products, cart, setCartQty, removeFromCart, addToCart, clearCart, completeSale } = useStore();
+  const { products, cart, setCartQty, removeFromCart, addToCart, clearCart, completeSale } =
+    useStore();
   const [received, setReceived] = useState("");
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
-  const [confirm, setConfirm] = useState<null | { total: number; received: number; change: number; items: { name: string; qty: number; subtotal: number }[] }>(null);
+  const [confirm, setConfirm] = useState<null | {
+    total: number;
+    received: number;
+    change: number;
+    items: { name: string; qty: number; subtotal: number }[];
+  }>(null);
 
   const cartItems = cart.map((c) => {
     const p = products.find((p) => p.id === c.productId)!;
@@ -27,11 +33,19 @@ function Sales() {
   const [dateLabel, setDateLabel] = useState("");
   useEffect(() => {
     setOrderId(`ORD-${String(Math.floor(Math.random() * 90000 + 10000))}`);
-    setDateLabel(new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" }));
+    setDateLabel(
+      new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" }),
+    );
   }, []);
 
   const searchResults = q
-    ? products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase())).slice(0, 5)
+    ? products
+        .filter(
+          (p) =>
+            p.name.toLowerCase().includes(q.toLowerCase()) ||
+            p.sku.toLowerCase().includes(q.toLowerCase()),
+        )
+        .slice(0, 5)
     : [];
 
   const handleCharge = () => {
@@ -90,7 +104,9 @@ function Sales() {
                 <Icon name={p.icon} className="text-on-surface-variant" />
                 <div className="flex-1 min-w-0">
                   <p className="text-label-lg font-semibold truncate">{p.name}</p>
-                  <p className="text-label-md text-on-surface-variant">${p.salePrice.toFixed(2)} · Stock: {p.stock}</p>
+                  <p className="text-label-md text-on-surface-variant">
+                    ${p.salePrice.toFixed(2)} · Stock: {p.stock}
+                  </p>
                 </div>
                 <Icon name="add_circle" className="text-primary" />
               </button>
@@ -108,7 +124,9 @@ function Sales() {
           </div>
           <div className="divide-y divide-outline-variant">
             {cartItems.length === 0 && (
-              <div className="p-8 text-center text-on-surface-variant">El carrito está vacío. Busca productos arriba.</div>
+              <div className="p-8 text-center text-on-surface-variant">
+                El carrito está vacío. Busca productos arriba.
+              </div>
             )}
             {cartItems.map((i) => (
               <div key={i.productId} className="p-3 flex items-center gap-2">
@@ -117,21 +135,34 @@ function Sales() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-label-lg font-semibold truncate">{i.product.name}</h3>
-                  <p className="text-label-md text-on-surface-variant">${i.product.salePrice.toFixed(2)}</p>
+                  <p className="text-label-md text-on-surface-variant">
+                    ${i.product.salePrice.toFixed(2)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => setCartQty(i.productId, i.qty - 1)} className="w-7 h-7 rounded-full border border-outline-variant grid place-items-center hover:bg-surface-container-high">
+                  <button
+                    onClick={() => setCartQty(i.productId, i.qty - 1)}
+                    className="w-7 h-7 rounded-full border border-outline-variant grid place-items-center hover:bg-surface-container-high"
+                  >
                     <Icon name="remove" style={{ fontSize: 16 }} />
                   </button>
                   <span className="w-6 text-center font-bold">{i.qty}</span>
-                  <button onClick={() => setCartQty(i.productId, i.qty + 1)} className="w-7 h-7 rounded-full border border-outline-variant grid place-items-center hover:bg-surface-container-high">
+                  <button
+                    onClick={() => setCartQty(i.productId, i.qty + 1)}
+                    className="w-7 h-7 rounded-full border border-outline-variant grid place-items-center hover:bg-surface-container-high"
+                  >
                     <Icon name="add" style={{ fontSize: 16 }} />
                   </button>
                 </div>
                 <div className="w-16 text-right shrink-0">
-                  <p className="text-label-md text-primary font-semibold">${i.subtotal.toFixed(2)}</p>
+                  <p className="text-label-md text-primary font-semibold">
+                    ${i.subtotal.toFixed(2)}
+                  </p>
                 </div>
-                <button onClick={() => removeFromCart(i.productId)} className="text-error p-1 shrink-0">
+                <button
+                  onClick={() => removeFromCart(i.productId)}
+                  className="text-error p-1 shrink-0"
+                >
                   <Icon name="delete" style={{ fontSize: 20 }} />
                 </button>
               </div>
@@ -150,7 +181,9 @@ function Sales() {
         </div>
 
         <div className="bg-surface border border-outline-variant rounded-xl p-container-padding shadow-sm flex flex-col gap-2">
-          <h2 className="text-label-lg text-on-surface-variant uppercase tracking-wider">Resumen</h2>
+          <h2 className="text-label-lg text-on-surface-variant uppercase tracking-wider">
+            Resumen
+          </h2>
           <div className="border-t border-outline-variant pt-3 flex justify-between items-center">
             <span className="text-headline-sm font-semibold">Total</span>
             <span className="text-headline-lg font-bold text-primary">${total.toFixed(2)}</span>
@@ -158,7 +191,11 @@ function Sales() {
           <div className="mt-2 flex flex-col gap-1">
             <label className="text-label-md text-on-surface-variant font-semibold">Recibido:</label>
             <div className="bg-surface-container-low border border-outline-variant rounded-lg p-2 flex items-center">
-              <Icon name="payments" className="px-2 text-on-surface-variant" style={{ fontSize: 18 }} />
+              <Icon
+                name="payments"
+                className="px-2 text-on-surface-variant"
+                style={{ fontSize: 18 }}
+              />
               <input
                 type="number"
                 step="0.01"
@@ -207,19 +244,37 @@ function Sales() {
                 </div>
               ))}
               <div className="border-t border-outline-variant pt-3 flex flex-col gap-1">
-                <div className="flex justify-between"><span className="text-label-lg text-on-surface-variant">Total</span><span className="text-headline-sm text-primary font-bold">${confirm.total.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-label-lg text-on-surface-variant">Recibido</span><span className="font-mono">${confirm.received.toFixed(2)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-label-lg text-on-surface-variant">Total</span>
+                  <span className="text-headline-sm text-primary font-bold">
+                    ${confirm.total.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-label-lg text-on-surface-variant">Recibido</span>
+                  <span className="font-mono">${confirm.received.toFixed(2)}</span>
+                </div>
                 <div className="flex justify-between bg-secondary-container/40 p-2 rounded-lg">
-                  <span className="text-label-lg text-on-secondary-container font-semibold">Cambio</span>
-                  <span className="text-headline-sm text-on-secondary-container font-bold">${confirm.change.toFixed(2)}</span>
+                  <span className="text-label-lg text-on-secondary-container font-semibold">
+                    Cambio
+                  </span>
+                  <span className="text-headline-sm text-on-secondary-container font-bold">
+                    ${confirm.change.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
             <div className="p-container-padding bg-surface-container-low flex flex-col gap-2">
-              <button onClick={confirmSale} className="w-full h-12 bg-primary text-on-primary rounded-xl text-label-lg flex items-center justify-center gap-2 shadow-md active:scale-95">
+              <button
+                onClick={confirmSale}
+                className="w-full h-12 bg-primary text-on-primary rounded-xl text-label-lg flex items-center justify-center gap-2 shadow-md active:scale-95"
+              >
                 <Icon name="check_circle" /> Confirmar Venta
               </button>
-              <button onClick={() => setConfirm(null)} className="w-full h-12 border border-outline text-on-surface-variant rounded-xl text-label-lg hover:bg-surface-container-high">
+              <button
+                onClick={() => setConfirm(null)}
+                className="w-full h-12 border border-outline text-on-surface-variant rounded-xl text-label-lg hover:bg-surface-container-high"
+              >
                 Seguir Editando
               </button>
             </div>

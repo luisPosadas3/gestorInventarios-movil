@@ -16,7 +16,9 @@ function Dashboard() {
   const lowStock = products.filter((p) => p.stock <= p.minStock);
   const totalValue = products.reduce((s, p) => s + p.stock * p.purchasePrice, 0);
   const today = new Date().toDateString();
-  const movementsToday = movements.filter((m) => new Date(m.timestamp).toDateString() === today).length;
+  const movementsToday = movements.filter(
+    (m) => new Date(m.timestamp).toDateString() === today,
+  ).length;
 
   return (
     <AppShell>
@@ -29,24 +31,42 @@ function Dashboard() {
         <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex flex-col justify-between h-32 shadow-sm">
           <Icon name="inventory" className="text-primary p-2 bg-primary-fixed rounded-lg w-fit" />
           <div>
-            <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Total Productos</p>
+            <p className="text-label-md text-on-surface-variant uppercase tracking-wider">
+              Total Productos
+            </p>
             <p className="text-headline-md text-primary font-semibold">{totalProducts}</p>
           </div>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex flex-col justify-between h-32 shadow-sm">
-          <Icon name="trending_down" className="text-error p-2 bg-error-container rounded-lg w-fit" />
+          <Icon
+            name="trending_down"
+            className="text-error p-2 bg-error-container rounded-lg w-fit"
+          />
           <div>
-            <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Stock Bajo</p>
+            <p className="text-label-md text-on-surface-variant uppercase tracking-wider">
+              Stock Bajo
+            </p>
             <p className="text-headline-md text-error font-semibold">{lowStock.length}</p>
           </div>
         </div>
 
         <div className="col-span-2 bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-            <Icon name="payments" filled className="text-secondary p-3 bg-secondary-fixed rounded-full" />
+            <Icon
+              name="payments"
+              filled
+              className="text-secondary p-3 bg-secondary-fixed rounded-full"
+            />
             <div>
-              <p className="text-label-md text-on-surface-variant uppercase tracking-wider">Valor Total Inventario</p>
-              <p className="text-headline-md text-on-surface font-semibold">${Math.round(totalValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</p>
+              <p className="text-label-md text-on-surface-variant uppercase tracking-wider">
+                Valor Total Inventario
+              </p>
+              <p className="text-headline-md text-on-surface font-semibold">
+                $
+                {Math.round(totalValue)
+                  .toString()
+                  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              </p>
             </div>
           </div>
         </div>

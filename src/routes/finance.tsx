@@ -30,9 +30,21 @@ function Finance() {
   const progress = Math.min(100, Math.round((totalSales / goal) * 100));
 
   const recentTx = [
-    ...salesToday.slice(0, 3).map((s) => ({ id: s.id, label: `Venta #${s.id.slice(-4)}`, amount: s.total, when: "Hace momentos", positive: true })),
+    ...salesToday.slice(0, 3).map((s) => ({
+      id: s.id,
+      label: `Venta #${s.id.slice(-4)}`,
+      amount: s.total,
+      when: "Hace momentos",
+      positive: true,
+    })),
     { id: "x1", label: "Venta #1234", amount: 450, when: "Hace 15 min · Caja 01", positive: true },
-    { id: "x2", label: "Ajuste de Inventario", amount: -120, when: "Hace 1h · Depósito", positive: false },
+    {
+      id: "x2",
+      label: "Ajuste de Inventario",
+      amount: -120,
+      when: "Hace 1h · Depósito",
+      positive: false,
+    },
   ];
 
   return (
@@ -40,17 +52,23 @@ function Finance() {
       <div className="mt-section-margin space-y-section-margin">
         <div className="space-y-1">
           <h2 className="text-headline-sm font-semibold text-on-surface">Información Financiera</h2>
-          <p className="text-body-md text-on-surface-variant">Resumen de operaciones y rentabilidad del día</p>
+          <p className="text-body-md text-on-surface-variant">
+            Resumen de operaciones y rentabilidad del día
+          </p>
         </div>
 
         <section className="grid grid-cols-1 gap-3">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
             <div className="flex justify-between items-start mb-2">
-              <span className="text-label-lg text-on-surface-variant font-semibold">Ventas del Día</span>
+              <span className="text-label-lg text-on-surface-variant font-semibold">
+                Ventas del Día
+              </span>
               <Icon name="payments" className="text-primary" />
             </div>
-            <p className="text-headline-md font-semibold text-on-surface">${totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+            <p className="text-headline-md font-semibold text-on-surface">
+              ${totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </p>
             <p className="text-label-md text-secondary flex items-center gap-1 mt-1">
               <Icon name="trending_up" style={{ fontSize: 14 }} /> {numSales} ventas realizadas
             </p>
@@ -59,10 +77,14 @@ function Finance() {
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary" />
             <div className="flex justify-between items-start mb-2">
-              <span className="text-label-lg text-on-surface-variant font-semibold">Ganancia Estimada del Día</span>
+              <span className="text-label-lg text-on-surface-variant font-semibold">
+                Ganancia Estimada del Día
+              </span>
               <Icon name="trending_up" className="text-secondary" />
             </div>
-            <p className="text-headline-md font-semibold">${(totalSales * 0.25).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+            <p className="text-headline-md font-semibold">
+              ${(totalSales * 0.25).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </p>
             <p className="text-label-md text-secondary flex items-center gap-1 mt-1">
               <Icon name="check_circle" style={{ fontSize: 14 }} /> Meta diaria en progreso
             </p>
@@ -70,7 +92,9 @@ function Finance() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-label-lg text-on-surface-variant uppercase tracking-wider font-semibold">Resumen de Movimientos</h3>
+          <h3 className="text-label-lg text-on-surface-variant uppercase tracking-wider font-semibold">
+            Resumen de Movimientos
+          </h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-surface border border-outline-variant rounded-xl p-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-secondary-container grid place-items-center shrink-0">
@@ -78,7 +102,9 @@ function Finance() {
               </div>
               <div className="min-w-0">
                 <p className="text-label-md text-on-surface-variant">Entradas</p>
-                <p className="text-label-lg font-semibold truncate">{entradas.length} items / ${entradasValue.toFixed(0)}</p>
+                <p className="text-label-lg font-semibold truncate">
+                  {entradas.length} items / ${entradasValue.toFixed(0)}
+                </p>
               </div>
             </div>
             <div className="bg-surface border border-outline-variant rounded-xl p-3 flex items-center gap-3">
@@ -87,7 +113,9 @@ function Finance() {
               </div>
               <div className="min-w-0">
                 <p className="text-label-md text-on-surface-variant">Salidas</p>
-                <p className="text-label-lg font-semibold truncate">{salidas.length} items / ${salidasValue.toFixed(0)}</p>
+                <p className="text-label-lg font-semibold truncate">
+                  {salidas.length} items / ${salidasValue.toFixed(0)}
+                </p>
               </div>
             </div>
           </div>
@@ -97,18 +125,26 @@ function Finance() {
           <div className="flex justify-between items-end mb-4">
             <div>
               <h3 className="text-headline-sm font-semibold">Progreso de Ventas</h3>
-              <p className="text-body-md text-on-surface-variant">Meta diaria: ${goal.toLocaleString()}</p>
+              <p className="text-body-md text-on-surface-variant">
+                Meta diaria: ${goal.toLocaleString()}
+              </p>
             </div>
             <p className="text-headline-md text-primary font-semibold">{progress}%</p>
           </div>
           <div className="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
-            <div className="h-full bg-primary transition-all duration-1000 ease-out" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full bg-primary transition-all duration-1000 ease-out"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <div className="mt-6 grid grid-cols-4 gap-2 h-28 items-end">
             <div className="bg-primary/20 rounded-t-lg" style={{ height: "40%" }} />
             <div className="bg-primary/40 rounded-t-lg" style={{ height: "65%" }} />
             <div className="bg-primary/60 rounded-t-lg" style={{ height: "90%" }} />
-            <div className="bg-primary rounded-t-lg animate-pulse" style={{ height: `${progress}%` }} />
+            <div
+              className="bg-primary rounded-t-lg animate-pulse"
+              style={{ height: `${progress}%` }}
+            />
           </div>
           <div className="flex justify-between mt-2 text-label-md text-outline">
             <span>Lun</span>
@@ -119,10 +155,15 @@ function Finance() {
         </section>
 
         <section className="space-y-3 pb-8">
-          <h3 className="text-label-lg text-on-surface-variant uppercase tracking-wider font-semibold">Transacciones Recientes</h3>
+          <h3 className="text-label-lg text-on-surface-variant uppercase tracking-wider font-semibold">
+            Transacciones Recientes
+          </h3>
           <div className="space-y-2">
             {recentTx.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 bg-surface border border-outline-variant rounded-xl">
+              <div
+                key={t.id}
+                className="flex items-center justify-between p-3 bg-surface border border-outline-variant rounded-xl"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-surface-container-highest grid place-items-center text-primary shrink-0">
                     <Icon name="receipt_long" />
@@ -132,7 +173,9 @@ function Finance() {
                     <p className="text-label-md text-on-surface-variant truncate">{t.when}</p>
                   </div>
                 </div>
-                <p className={`text-headline-sm font-semibold shrink-0 ${t.positive ? "text-primary" : "text-error"}`}>
+                <p
+                  className={`text-headline-sm font-semibold shrink-0 ${t.positive ? "text-primary" : "text-error"}`}
+                >
                   {t.positive ? "+" : "-"}${Math.abs(t.amount).toFixed(2)}
                 </p>
               </div>

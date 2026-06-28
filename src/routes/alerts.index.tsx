@@ -24,21 +24,27 @@ function Alerts() {
     <AppShell title="Alertas">
       <section className="mt-4 mb-section-margin">
         <h2 className="text-headline-lg font-bold text-on-surface">Panel de Alertas</h2>
-        <p className="text-body-md text-on-surface-variant">Productos que requieren reposición inmediata para evitar quiebre de stock.</p>
+        <p className="text-body-md text-on-surface-variant">
+          Productos que requieren reposición inmediata para evitar quiebre de stock.
+        </p>
       </section>
 
       <div className="grid grid-cols-2 gap-2 mb-section-margin">
         <div className="bg-error-container p-container-padding rounded-xl flex flex-col gap-1">
           <span className="text-label-md text-on-error-container uppercase">Críticos</span>
           <div className="flex items-center gap-2">
-            <span className="text-headline-md text-on-error-container font-semibold">{critical.length}</span>
+            <span className="text-headline-md text-on-error-container font-semibold">
+              {critical.length}
+            </span>
             <Icon name="warning" className="text-error" />
           </div>
         </div>
         <div className="bg-surface-container-high p-container-padding rounded-xl flex flex-col gap-1">
           <span className="text-label-md text-on-surface-variant uppercase">Solicitados</span>
           <div className="flex items-center gap-2">
-            <span className="text-headline-md text-on-surface font-semibold">{String(requested.size).padStart(2, "0")}</span>
+            <span className="text-headline-md text-on-surface font-semibold">
+              {String(requested.size).padStart(2, "0")}
+            </span>
             <Icon name="local_shipping" className="text-secondary" />
           </div>
         </div>
@@ -59,12 +65,18 @@ function Alerts() {
                 <div className="p-container-padding flex-1 flex flex-col gap-2">
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
-                      <h3 className="text-headline-sm font-semibold text-on-surface truncate">{p.name}</h3>
-                      <span className="font-mono text-data-mono text-on-surface-variant">SKU: {p.sku}</span>
+                      <h3 className="text-headline-sm font-semibold text-on-surface truncate">
+                        {p.name}
+                      </h3>
+                      <span className="font-mono text-data-mono text-on-surface-variant">
+                        SKU: {p.sku}
+                      </span>
                     </div>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0 ${
-                        isCritical ? "bg-error-container text-on-error-container" : "bg-tertiary-fixed text-on-tertiary-fixed-variant"
+                        isCritical
+                          ? "bg-error-container text-on-error-container"
+                          : "bg-tertiary-fixed text-on-tertiary-fixed-variant"
                       }`}
                     >
                       {isCritical ? "Stock Crítico" : "Bajo Stock"}
@@ -74,12 +86,19 @@ function Alerts() {
                     <div className="flex flex-col">
                       <span className="text-label-md text-on-surface-variant">Actual / Mínimo</span>
                       <div className="flex items-baseline gap-1">
-                        <span className={`text-headline-md font-semibold ${isCritical ? "text-error" : "text-tertiary-fixed-dim"}`}>{p.stock}</span>
+                        <span
+                          className={`text-headline-md font-semibold ${isCritical ? "text-error" : "text-tertiary-fixed-dim"}`}
+                        >
+                          {p.stock}
+                        </span>
                         <span className="text-body-md text-outline">/ {p.minStock} unidades</span>
                       </div>
                     </div>
                     {isReq ? (
-                      <button disabled className="bg-secondary-container text-on-secondary-container text-label-lg font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                      <button
+                        disabled
+                        className="bg-secondary-container text-on-secondary-container text-label-lg font-semibold px-3 py-2 rounded-lg flex items-center gap-1"
+                      >
                         <Icon name="check_circle" style={{ fontSize: 18 }} /> Solicitado
                       </button>
                     ) : (
@@ -92,7 +111,10 @@ function Alerts() {
                     )}
                   </div>
                   <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-1">
-                    <div className={`${isCritical ? "bg-error" : "bg-tertiary-fixed-dim"} h-full rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                    <div
+                      className={`${isCritical ? "bg-error" : "bg-tertiary-fixed-dim"} h-full rounded-full transition-all`}
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
                 </div>
               </div>

@@ -40,7 +40,10 @@ export function AppShell({ children, title = "Gestor de Inventario", back, hideN
           ) : (
             <Icon name="inventory_2" className="text-primary" />
           )}
-          <h1 className="font-bold text-primary truncate" style={{ fontSize: 20, lineHeight: "28px" }}>
+          <h1
+            className="font-bold text-primary truncate"
+            style={{ fontSize: 20, lineHeight: "28px" }}
+          >
             {title}
           </h1>
         </div>
@@ -54,8 +57,7 @@ export function AppShell({ children, title = "Gestor de Inventario", back, hideN
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-2 py-item-gap bg-surface border-t border-outline-variant">
           {navItems.map((item) => {
-            const active =
-              item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+            const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
@@ -64,7 +66,7 @@ export function AppShell({ children, title = "Gestor de Inventario", back, hideN
                   "flex flex-col items-center justify-center px-3 py-1 rounded-full transition-all duration-150 active:scale-90",
                   active
                     ? "bg-primary-container text-on-primary-container"
-                    : "text-on-surface-variant hover:bg-surface-container-high"
+                    : "text-on-surface-variant hover:bg-surface-container-high",
                 )}
               >
                 <Icon name={item.icon} filled={active} />

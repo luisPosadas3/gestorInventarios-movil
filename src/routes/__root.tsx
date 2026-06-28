@@ -79,7 +79,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" },
       { title: "Gestor de Inventario" },
-      { name: "description", content: "Aplicación móvil para gestión de inventarios, ventas y movimientos." },
+      {
+        name: "description",
+        content: "Aplicación móvil para gestión de inventarios, ventas y movimientos.",
+      },
       { name: "theme-color", content: "#00288e" },
     ],
     links: [

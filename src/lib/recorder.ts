@@ -19,9 +19,15 @@ export async function startRecording(): Promise<Recorder> {
 
   const cleanup = async () => {
     stream.getTracks().forEach((t) => t.stop());
-    try { node.disconnect(); } catch {}
-    try { source.disconnect(); } catch {}
-    try { await ctx.close(); } catch {}
+    try {
+      node.disconnect();
+    } catch {}
+    try {
+      source.disconnect();
+    } catch {}
+    try {
+      await ctx.close();
+    } catch {}
   };
 
   return {

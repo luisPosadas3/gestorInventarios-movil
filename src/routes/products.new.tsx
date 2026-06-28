@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/products/new")({
@@ -15,7 +16,6 @@ function NewProduct() {
   const [form, setForm] = useState({
     name: "",
     sku: "",
-    description: "",
     purchasePrice: "",
     salePrice: "",
     stock: "",
@@ -23,8 +23,9 @@ function NewProduct() {
   });
   const [image, setImage] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
-  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,13 +38,19 @@ function NewProduct() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.purchasePrice || !form.salePrice || !form.stock) return;
+    if (
+      !form.name.trim() ||
+      !form.sku.trim() ||
+      !form.purchasePrice ||
+      !form.salePrice ||
+      !form.stock
+    )
+      return;
     setSaving(true);
     setTimeout(() => {
       addProduct({
-        name: form.name,
-        sku: form.sku || `SKU-${Date.now().toString().slice(-6)}`,
-        description: form.description,
+        name: form.name.trim(),
+        sku: form.sku.trim(),
         icon: "category",
         image: image || undefined,
         purchasePrice: parseFloat(form.purchasePrice),
@@ -68,14 +75,23 @@ function NewProduct() {
               {image ? (
                 <img src={image} alt="Vista previa" className="w-full h-full object-cover" />
               ) : (
-                <Icon name="add_photo_alternate" className="text-on-surface-variant" style={{ fontSize: 32 }} />
+                <Icon
+                  name="add_photo_alternate"
+                  className="text-on-surface-variant"
+                  style={{ fontSize: 32 }}
+                />
               )}
             </div>
             <div className="flex-1 flex flex-col gap-2">
               <label className="h-10 px-4 bg-primary text-on-primary rounded-full font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform text-label-lg">
                 <Icon name="upload" style={{ fontSize: 18 }} />
                 {image ? "Cambiar imagen" : "Subir imagen"}
-                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
               </label>
               {image && (
                 <button
@@ -103,21 +119,24 @@ function NewProduct() {
               className="w-full h-12 px-3 bg-white border border-outline-variant rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </Field>
-          <Field label="SKU">
-            <input
-              value={form.sku}
-              onChange={update("sku")}
-              placeholder="Opcional"
-              className="w-full h-12 px-3 bg-white border border-outline-variant rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary font-mono"
-            />
-          </Field>
-          <Field label="Descripción">
-            <textarea
-              value={form.description}
-              onChange={update("description")}
-              placeholder="Especificaciones técnicas, marca o modelo..."
-              className="w-full min-h-[96px] p-3 bg-white border border-outline-variant rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
-            />
+          <Field label="SKU" required>
+            <div className="flex flex-col gap-2">
+              <input
+                required
+                value={form.sku}
+                onChange={update("sku")}
+                placeholder="Ej: MK-001"
+                className="w-full h-12 px-3 bg-white border border-outline-variant rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setScanOpen(true)}
+                className="h-11 px-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                <Icon name="barcode_scanner" />
+                Escanear SKU
+              </button>
+            </div>
           </Field>
         </Card>
 
@@ -186,7 +205,8 @@ function NewProduct() {
             </Field>
           </div>
           <p className="mt-4 text-[11px] text-on-surface-variant leading-tight">
-            Se generará una alerta automática cuando las existencias sean menores al Stock Mínimo definido.
+            Se generará una alerta automática cuando las existencias sean menores al Stock Mínimo
+            definido.
           </p>
         </div>
 
@@ -201,11 +221,26 @@ function NewProduct() {
           </button>
         </footer>
       </form>
+
+      <BarcodeScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        mode="capture"
+        onDetected={(code) => setForm((prev) => ({ ...prev, sku: code }))}
+      />
     </AppShell>
   );
 }
 
-function Card({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Card({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-surface-container-lowest border border-outline-variant p-container-padding rounded-xl">
       <h2 className="text-label-lg font-semibold text-primary mb-4 flex items-center gap-2">
@@ -216,7 +251,15 @@ function Card({ title, icon, children }: { title: string; icon: string; children
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-label-md text-on-surface-variant">
