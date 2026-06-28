@@ -8,9 +8,12 @@ datasource db {
 }
 
 model Product {
-  id    String @id @default(uuid())
-  sku   String
-  name  String
-  stock Int
-  price Float
+  id             String @id @default(uuid())
+  sku            String @unique
+  name           String
+  image          String?
+  purchasePrice  Float
+  salePrice      Float
+  stock          Int
+  minStock       Int
 }
