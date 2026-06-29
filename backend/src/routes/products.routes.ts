@@ -3,6 +3,47 @@ import { prisma } from "../lib/prisma.js";
 
 const router = Router();
 
+function validateProductPayload(body: {
+  sku?: unknown;
+  name?: unknown;
+  purchasePrice?: unknown;
+  salePrice?: unknown;
+  stock?: unknown;
+  minStock?: unknown;
+}) {
+  const { sku, name, purchasePrice, salePrice, stock, minStock } = body;
+
+  if (typeof sku !== "string" || !sku.trim()) {
+    return "sku is required";
+  }
+
+  if (typeof name !== "string" || !name.trim()) {
+    return "name is required";
+  }
+
+  if (typeof purchasePrice !== "number" || !Number.isFinite(purchasePrice) || purchasePrice < 0) {
+    return "purchasePrice must be a non-negative number";
+  }
+
+  if (typeof salePrice !== "number" || !Number.isFinite(salePrice) || salePrice < 0) {
+    return "salePrice must be a non-negative number";
+  }
+
+  if (purchasePrice > salePrice) {
+    return "purchasePrice cannot be greater than salePrice";
+  }
+
+  if (typeof stock !== "number" || !Number.isInteger(stock) || stock < 0) {
+    return "stock must be a non-negative integer";
+  }
+
+  if (typeof minStock !== "number" || !Number.isInteger(minStock) || minStock < 0) {
+    return "minStock must be a non-negative integer";
+  }
+
+  return null;
+}
+
 router.get("/", async (_req, res) => {
   try {
     const products = await prisma.product.findMany({
@@ -31,38 +72,9 @@ router.post("/", async (req, res) => {
   try {
     const { sku, name, image, purchasePrice, salePrice, stock, minStock } = req.body;
 
-    if (typeof sku !== "string" || !sku.trim()) {
-      res.status(400).json({ error: "sku is required" });
-      return;
-    }
-
-    if (typeof name !== "string" || !name.trim()) {
-      res.status(400).json({ error: "name is required" });
-      return;
-    }
-
-    if (typeof purchasePrice !== "number" || purchasePrice < 0) {
-      return res.status(400).json({
-        error: "purchasePrice must be a non-negative number",
-      });
-    }
-
-    if (typeof salePrice !== "number" || salePrice < 0) {
-      return res.status(400).json({
-        error: "salePrice must be a non-negative number",
-      });
-    }
-
-    if (typeof stock !== "number" || !Number.isInteger(stock) || stock < 0) {
-      return res.status(400).json({
-        error: "stock must be a non-negative integer",
-      });
-    }
-
-    if (typeof minStock !== "number" || !Number.isInteger(minStock) || minStock < 0) {
-      return res.status(400).json({
-        error: "minStock must be a non-negative integer",
-      });
+    const validationError = validateProductPayload(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     const product = await prisma.product.create({
@@ -89,6 +101,11 @@ router.put("/:id", async (req, res) => {
     const { id } = req.params;
 
     const { sku, name, image, purchasePrice, salePrice, stock, minStock } = req.body;
+
+    const validationError = validateProductPayload(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
 
     const existing = await prisma.product.findUnique({
       where: { id },
