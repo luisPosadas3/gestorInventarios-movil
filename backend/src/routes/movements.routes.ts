@@ -60,6 +60,10 @@ router.post("/", async (req, res) => {
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) return res.status(404).json({ error: "Product not found" });
 
+    if (type === "salida" && product.stock < quantity) {
+      return res.status(400).json({ error: `Stock insuficiente para la salida: ${product.name} (Stock: ${product.stock}, Solicitado: ${quantity})` });
+    }
+
     // Transacción: crear movimiento + actualizar stock
     const [movement] = await prisma.$transaction([
       prisma.movement.create({

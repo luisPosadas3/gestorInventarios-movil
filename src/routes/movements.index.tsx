@@ -532,10 +532,10 @@ function Movements() {
         onClose={() => setScanOpen(false)}
         onDetected={(code, product) => {
           setLastScan({ code, matched: !!product });
-          if (product) {
-            const found = apiProducts.find((p) => p.id === product.id);
-            if (found) selectProduct(found);
-          }
+          setSearch(code);
+          setSelectedProduct(null);
+          setShowDropdown(true);
+          setPrice("");
         }}
       />
     </AppShell>

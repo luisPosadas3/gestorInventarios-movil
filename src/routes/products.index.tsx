@@ -161,7 +161,7 @@ function Products() {
       <BarcodeScanner
         open={scanOpen}
         onClose={() => setScanOpen(false)}
-        onDetected={(code, product) => setQ(product?.sku ?? code)}
+        onDetected={(code) => setQ(code)}
       />
       {deleteId && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">

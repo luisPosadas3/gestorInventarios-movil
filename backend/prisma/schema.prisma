@@ -32,3 +32,21 @@ model Movement {
 
   product     Product  @relation(fields: [productId], references: [id])
 }
+
+model Sale {
+  id        String     @id @default(uuid())
+  total     Float
+  received  Float
+  timestamp DateTime   @default(now())
+  items     SaleItem[]
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+  name      String
+  qty       Int
+  price     Float
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}

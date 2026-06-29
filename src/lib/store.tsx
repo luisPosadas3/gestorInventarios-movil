@@ -1,12 +1,15 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { initialProducts, initialSales, type Product, type Sale } from "./mock-data";
-import { createMovement, mapApiMovementToMovement } from "../services/movements.service";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { type Product, type Sale, type Movement } from "./mock-data";
+import { createMovement, getMovements, mapApiMovementToMovement } from "../services/movements.service";
+import { getProducts, mapApiProductToProduct } from "../services/products.service";
+import { getSales, createSale, mapApiSaleToSale } from "../services/sales.service";
 
 type CartItem = { productId: string; qty: number };
 
 type Store = {
   products: Product[];
   sales: Sale[];
+  movements: Movement[];
   cart: CartItem[];
   addProduct: (p: Omit<Product, "id">) => void;
   updateStock: (productId: string, delta: number) => void;
@@ -24,18 +27,33 @@ type Store = {
   setCartQty: (productId: string, qty: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  completeSale: (received: number) => Sale;
+  completeSale: (received: number) => Promise<Sale>;
 };
 
 const StoreContext = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [sales, setSales] = useState<Sale[]>(initialSales);
-  const [cart, setCart] = useState<CartItem[]>([
-    { productId: "p1", qty: 2 },
-    { productId: "p2", qty: 1 },
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    // Cargar catálogo de productos real de la BD
+    getProducts()
+      .then((data) => setProducts(data.map(mapApiProductToProduct)))
+      .catch((err) => console.error("Error al cargar productos en el Store:", err));
+
+    // Cargar historial de ventas real de la BD
+    getSales()
+      .then((data) => setSales(data.map(mapApiSaleToSale)))
+      .catch((err) => console.error("Error al cargar ventas en el Store:", err));
+
+    // Cargar historial de movimientos real de la BD
+    getMovements()
+      .then((data) => setMovements(data.map(mapApiMovementToMovement)))
+      .catch((err) => console.error("Error al cargar movimientos en el Store:", err));
+  }, []);
 
   const addProduct: Store["addProduct"] = (p) => {
     setProducts((prev) => [...prev, { ...p, id: `p${Date.now()}` }]);
@@ -49,7 +67,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Ahora llama a la API. El stock lo actualiza el servidor en transacción.
   const addMovement: Store["addMovement"] = async (m) => {
-    await createMovement({
+    const apiMov = await createMovement({
       productId: m.productId,
       productName: m.productName,
       type: m.type,
@@ -58,6 +76,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       price: m.price ?? 0,
       note: m.note ?? (m.type === "entrada" ? "Registro manual" : "Salida manual"),
     });
+
+    // Agregar movimiento localmente para reflejo inmediato
+    setMovements((prev) => [mapApiMovementToMovement(apiMov), ...prev]);
+
     // Actualiza stock local para reflejo inmediato en UI sin refetch de productos
     updateStock(m.productId, m.type === "entrada" ? m.quantity : -m.quantity);
   };
@@ -83,21 +105,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const completeSale: Store["completeSale"] = (received) => {
+  const completeSale: Store["completeSale"] = async (received) => {
     const items = cart.map((i) => {
       const p = products.find((p) => p.id === i.productId)!;
       return { productId: i.productId, name: p.name, qty: i.qty, price: p.salePrice };
     });
     const total = items.reduce((s, i) => s + i.qty * i.price, 0);
-    const sale: Sale = {
-      id: `ORD-${Math.floor(Math.random() * 90000 + 10000)}`,
-      items,
+
+    // Guardar venta en base de datos (descuenta stock y genera movimientos en el servidor)
+    const apiSale = await createSale({
       total,
       received,
-      timestamp: new Date().toISOString(),
-    };
+      items,
+    });
+
+    const sale = mapApiSaleToSale(apiSale);
     setSales((prev) => [sale, ...prev]);
+
+    // Actualizar stock local para reflejo inmediato
     items.forEach((i) => updateStock(i.productId, -i.qty));
+
+    // Refrescar movimientos en segundo plano
+    try {
+      const updatedMovements = await getMovements();
+      setMovements(updatedMovements.map(mapApiMovementToMovement));
+    } catch (e) {
+      console.error("Error al refrescar movimientos tras la venta:", e);
+    }
+
     setCart([]);
     return sale;
   };
@@ -107,6 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       value={{
         products,
         sales,
+        movements,
         cart,
         addProduct,
         updateStock,

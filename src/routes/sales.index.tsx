@@ -23,6 +23,7 @@ function Sales() {
     change: number;
     items: { name: string; qty: number; subtotal: number }[];
   }>(null);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const cartItems = cart.map((c) => {
     const p = products.find((p) => p.id === c.productId)!;
@@ -42,8 +43,8 @@ function Sales() {
     ? products
         .filter(
           (p) =>
-            p.name.toLowerCase().includes(q.toLowerCase()) ||
-            p.sku.toLowerCase().includes(q.toLowerCase()),
+              p.name.toLowerCase().includes(q.toLowerCase()) ||
+              p.sku.toLowerCase().includes(q.toLowerCase()),
         )
         .slice(0, 5)
     : [];
@@ -59,10 +60,15 @@ function Sales() {
     });
   };
 
-  const confirmSale = () => {
-    completeSale(confirm!.received);
-    setConfirm(null);
-    setReceived("");
+  const confirmSale = async () => {
+    try {
+      await completeSale(confirm!.received);
+      setConfirm(null);
+      setReceived("");
+    } catch (err) {
+      setConfirm(null);
+      setErrorModal(err instanceof Error ? err.message : "Error al procesar la venta");
+    }
   };
 
   return (
@@ -282,18 +288,38 @@ function Sales() {
         </div>
       )}
 
+      {errorModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden border border-error/20">
+            <div className="px-container-padding py-5 text-center border-b border-outline-variant bg-error-container/10">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-error/10 rounded-full mb-2">
+                <Icon name="error" filled className="text-error" style={{ fontSize: 28 }} />
+              </div>
+              <h2 className="text-headline-sm font-semibold text-error">No se puede completar la venta</h2>
+            </div>
+            <div className="p-container-padding py-6 text-center">
+              <p className="text-body-lg text-on-surface-variant font-medium">
+                {errorModal}
+              </p>
+            </div>
+            <div className="p-container-padding bg-surface-container-low flex flex-col gap-2">
+              <button
+                onClick={() => setErrorModal(null)}
+                className="w-full h-12 bg-error text-on-error rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md active:scale-95"
+              >
+                <Icon name="close" /> Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <BarcodeScanner
         open={scanOpen}
         onClose={() => setScanOpen(false)}
-        onDetected={(code, product) => {
-          if (product) {
-            addToCart(product.id);
-            setQ("");
-            setShowAdd(false);
-          } else {
-            setQ(code);
-            setShowAdd(true);
-          }
+        onDetected={(code) => {
+          setQ(code);
+          setShowAdd(true);
         }}
       />
     </AppShell>
