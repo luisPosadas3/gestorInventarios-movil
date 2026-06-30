@@ -54,13 +54,15 @@ export function findVoiceProductMatch(
   if (scored.length === 0) return { status: "not-found", products: [] };
 
   const bestScore = scored[0].score;
+  const secondScore = scored[1]?.score ?? 0;
   const best = scored.filter((item) => item.score === bestScore).map((item) => item.product);
 
-  if (bestScore >= 90 && best.length === 1) return { status: "matched", product: best[0] };
-  if (bestScore >= 65 && best.length === 1) return { status: "matched", product: best[0] };
+  if (best.length === 1 && bestScore >= 45 && (bestScore >= 60 || bestScore - secondScore >= 10)) {
+    return { status: "matched", product: best[0] };
+  }
 
   return {
-    status: best.length > 1 ? "ambiguous" : "not-found",
+    status: best.length > 1 || bestScore >= 45 ? "ambiguous" : "not-found",
     products: scored.slice(0, 6).map((item) => item.product),
   };
 }
@@ -92,15 +94,14 @@ function scoreProduct(product: ApiProduct, query: string): number {
 
   const queryTokens = new Set(getMeaningfulTokens(query));
   const nameTokens = getMeaningfulTokens(name);
-  const hits = nameTokens.filter((token) => queryTokens.has(token)).length;
+  const tokenSimilarity = scoreTokenOverlap(nameTokens, [...queryTokens]);
+  const compactSimilarity = scoreTextSimilarity(compactName, compactQuery);
+  const skuSimilarity = scoreTextSimilarity(compactSku, compactQuery);
+  const numericBonus = scoreNumericAlignment(nameTokens, [...queryTokens]);
 
-  if (hits === 0) return 0;
+  const score = Math.max(tokenSimilarity * 100, compactSimilarity * 100, skuSimilarity * 100);
 
-  const productCoverage = hits / nameTokens.length;
-  const queryCoverage = hits / Math.max(queryTokens.size, 1);
-  const score = Math.max(productCoverage * 90, queryCoverage * 80);
-
-  return Math.round(score);
+  return Math.round(Math.min(100, score + numericBonus));
 }
 
 function getMeaningfulTokens(value: string): string[] {
@@ -111,6 +112,87 @@ function compactText(value: string): string {
   return value.replace(/\s+/g, "");
 }
 
+function scoreTokenOverlap(leftTokens: string[], rightTokens: string[]): number {
+  if (leftTokens.length === 0 || rightTokens.length === 0) return 0;
+
+  const leftBest = leftTokens.map((leftToken) =>
+    rightTokens.reduce(
+      (best, rightToken) => Math.max(best, tokenSimilarity(leftToken, rightToken)),
+      0,
+    ),
+  );
+  const rightBest = rightTokens.map((rightToken) =>
+    leftTokens.reduce(
+      (best, leftToken) => Math.max(best, tokenSimilarity(leftToken, rightToken)),
+      0,
+    ),
+  );
+
+  const leftAverage = leftBest.reduce((sum, value) => sum + value, 0) / leftBest.length;
+  const rightAverage = rightBest.reduce((sum, value) => sum + value, 0) / rightBest.length;
+
+  return Math.max(leftAverage, rightAverage);
+}
+
+function scoreTextSimilarity(left: string, right: string): number {
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.92;
+  if (left.startsWith(right) || right.startsWith(left)) return 0.88;
+  return diceCoefficient(left, right);
+}
+
+function scoreNumericAlignment(leftTokens: string[], rightTokens: string[]): number {
+  const leftNumbers = leftTokens.filter((token) => /^\d+$/.test(token));
+  const rightNumbers = rightTokens.filter((token) => /^\d+$/.test(token));
+  if (leftNumbers.length === 0 || rightNumbers.length === 0) return 0;
+
+  const matches = leftNumbers.filter((token) => rightNumbers.includes(token)).length;
+  return matches > 0 ? 0.1 : 0;
+}
+
+function tokenSimilarity(left: string, right: string): number {
+  if (left === right) return 1;
+  if (left.length < 2 || right.length < 2) return 0;
+  if (left.includes(right) || right.includes(left)) {
+    const ratio = Math.min(left.length, right.length) / Math.max(left.length, right.length);
+    return 0.75 + ratio * 0.2;
+  }
+  if (left.slice(0, 4) === right.slice(0, 4) && Math.min(left.length, right.length) >= 4) {
+    return 0.78;
+  }
+  return diceCoefficient(left, right);
+}
+
+function diceCoefficient(left: string, right: string): number {
+  const leftBigrams = buildBigrams(left);
+  const rightBigrams = buildBigrams(right);
+  if (leftBigrams.length === 0 || rightBigrams.length === 0) return 0;
+
+  let intersection = 0;
+  const rightPool = [...rightBigrams];
+  for (const bigram of leftBigrams) {
+    const index = rightPool.indexOf(bigram);
+    if (index >= 0) {
+      intersection += 1;
+      rightPool.splice(index, 1);
+    }
+  }
+
+  return (2 * intersection) / (leftBigrams.length + rightBigrams.length);
+}
+
+function buildBigrams(value: string): string[] {
+  const compact = value.replace(/\s+/g, "");
+  if (compact.length < 2) return [];
+
+  const out: string[] = [];
+  for (let i = 0; i < compact.length - 1; i += 1) {
+    out.push(compact.slice(i, i + 2));
+  }
+  return out;
+}
+
 const ignoredProductTokens = new Set([
   "de",
   "del",
@@ -118,6 +200,26 @@ const ignoredProductTokens = new Set([
   "el",
   "los",
   "las",
+  "un",
+  "una",
+  "unos",
+  "unas",
+  "y",
+  "o",
+  "con",
+  "sin",
+  "cada",
+  "por",
+  "para",
+  "tipo",
+  "entrada",
+  "salida",
+  "llego",
+  "llegaron",
+  "salio",
+  "salieron",
+  "peso",
+  "pesos",
   "natural",
   "sabor",
   "ml",
