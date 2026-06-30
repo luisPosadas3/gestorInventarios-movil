@@ -5,6 +5,11 @@ import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { startRecording, type Recorder } from "@/lib/recorder";
 import { useStore } from "@/lib/store";
+import {
+  findVoiceProductMatch,
+  normalizeVoiceMovementDraft,
+  type VoiceMovementDraft,
+} from "@/lib/voice-movement";
 import { getProducts, mapApiProductToProduct, type ApiProduct } from "../services/products.service";
 import { createMovement } from "../services/movements.service";
 
@@ -30,7 +35,9 @@ function Movements() {
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ApiProduct | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [pendingVoicePrice, setPendingVoicePrice] = useState<number | "purchase" | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const skipNextAutoPriceRef = useRef(false);
 
   const filtered =
     search.length >= 1
@@ -47,6 +54,12 @@ function Movements() {
     setSelectedProduct(p);
     setSearch(`${p.sku} — ${p.name}`);
     setShowDropdown(false);
+    if (pendingVoicePrice !== null) {
+      const nextPrice = pendingVoicePrice === "purchase" ? p.purchasePrice : pendingVoicePrice;
+      setPrice(nextPrice.toFixed(2));
+      setPendingVoicePrice(null);
+      return;
+    }
     // Auto-fill precio según tipo
     setPrice(type === "entrada" ? p.purchasePrice.toFixed(2) : p.salePrice.toFixed(2));
   };
@@ -77,6 +90,10 @@ function Movements() {
   // Al cambiar tipo, actualiza precio auto si hay producto seleccionado
   useEffect(() => {
     if (selectedProduct) {
+      if (skipNextAutoPriceRef.current) {
+        skipNextAutoPriceRef.current = false;
+        return;
+      }
       setPrice(
         type === "entrada"
           ? selectedProduct.purchasePrice.toFixed(2)
@@ -88,10 +105,17 @@ function Movements() {
   const unit = parseFloat(price) || 0;
   const total = unit * qty;
 
-  const handleConfirm = () => {
-    if (!selectedProduct) return;
-    setConfirm({ product: selectedProduct, qty, type, unit });
+  const openMovementConfirm = (
+    product = selectedProduct,
+    movementQty = qty,
+    movementType = type,
+    movementUnit = unit,
+  ) => {
+    if (!product) return;
+    setConfirm({ product, qty: movementQty, type: movementType, unit: movementUnit });
   };
+
+  const handleConfirm = () => openMovementConfirm();
 
   const finalize = async () => {
     if (!confirm) return;
@@ -111,6 +135,7 @@ function Movements() {
       setConfirm(null);
       setQty(1);
       setPrice("");
+      setPendingVoicePrice(null);
       setSearch("");
       setSelectedProduct(null);
     } catch (e) {
@@ -125,6 +150,60 @@ function Movements() {
   const [recState, setRecState] = useState<"idle" | "recording" | "processing">("idle");
   const [transcript, setTranscript] = useState("");
   const [voiceError, setVoiceError] = useState("");
+
+  const applyVoiceMovementDraft = (draft: VoiceMovementDraft) => {
+    const movement = normalizeVoiceMovementDraft(draft);
+    const nextType = movement.type ?? type;
+    const nextQty = movement.quantity ?? qty;
+    const productName = movement.product.trim();
+
+    setType(nextType);
+    setQty(nextQty);
+
+    if (!productName) {
+      setSearch("");
+      setSelectedProduct(null);
+      setShowDropdown(false);
+      setPendingVoicePrice(movement.purchasePrice ?? "purchase");
+      setPrice(movement.purchasePrice !== null ? movement.purchasePrice.toFixed(2) : "");
+      setVoiceError("No pude identificar el producto. Seleccionalo manualmente.");
+      return;
+    }
+
+    setSearch(productName);
+    const match = findVoiceProductMatch(apiProducts, productName);
+
+    if (match.status !== "matched") {
+      setSelectedProduct(null);
+      setShowDropdown(true);
+      setPendingVoicePrice(movement.purchasePrice ?? "purchase");
+      setPrice(movement.purchasePrice !== null ? movement.purchasePrice.toFixed(2) : "");
+      setVoiceError(
+        match.status === "ambiguous"
+          ? "Hay varias coincidencias. Selecciona el producto correcto."
+          : "No encontre ese producto. Seleccionalo manualmente.",
+      );
+      return;
+    }
+
+    const nextPrice =
+      movement.purchasePrice !== null ? movement.purchasePrice : match.product.purchasePrice;
+
+    setSelectedProduct(match.product);
+    skipNextAutoPriceRef.current = true;
+    setSearch(`${match.product.sku} — ${match.product.name}`);
+    setPrice(nextPrice.toFixed(2));
+    setPendingVoicePrice(null);
+    setShowDropdown(false);
+    setVoiceError("");
+
+    if (!movement.type || !movement.quantity) {
+      setVoiceError("Completa tipo y cantidad antes de confirmar.");
+      return;
+    }
+
+    openMovementConfirm(match.product, nextQty, nextType, nextPrice);
+  };
 
   const handleMicClick = async () => {
     setVoiceError("");
@@ -142,6 +221,7 @@ function Movements() {
         if (!res.ok)
           throw new Error(data?.error?.message || data?.error || "Error de transcripción");
         setTranscript((data.text || "").trim() || "(sin voz detectada)");
+        applyVoiceMovementDraft(data.movement);
       } catch (e) {
         setVoiceError(e instanceof Error ? e.message : "Error al transcribir");
       } finally {
@@ -281,6 +361,7 @@ function Movements() {
                   setSelectedProduct(null);
                   setShowDropdown(false);
                   setPrice("");
+                  setPendingVoicePrice(null);
                 }}
                 className="text-on-surface-variant"
               >
@@ -380,7 +461,10 @@ function Movements() {
               type="number"
               step="0.01"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(e) => {
+                setPrice(e.target.value);
+                setPendingVoicePrice(null);
+              }}
               placeholder="0.00"
               className="w-full h-11 px-3 bg-surface border border-outline rounded-lg outline-none focus:ring-2 focus:ring-primary font-mono"
             />
@@ -536,6 +620,7 @@ function Movements() {
           setSelectedProduct(null);
           setShowDropdown(true);
           setPrice("");
+          setPendingVoicePrice(null);
         }}
       />
     </AppShell>
