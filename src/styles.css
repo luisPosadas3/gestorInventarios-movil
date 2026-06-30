@@ -40,9 +40,9 @@
   --color-on-tertiary: #ffffff;
   --color-tertiary-container: #ffdbce;
   --color-on-tertiary-container: #380d00;
-  --color-tertiary-fixed: #ffdbce;
-  --color-tertiary-fixed-dim: #ffb59a;
-  --color-on-tertiary-fixed-variant: #802a00;
+  --color-tertiary-fixed: #fff7ed;
+  --color-tertiary-fixed-dim: #f97316;
+  --color-on-tertiary-fixed-variant: #9a3412;
 
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;

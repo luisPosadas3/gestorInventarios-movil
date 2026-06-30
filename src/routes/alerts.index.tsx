@@ -9,15 +9,66 @@ export const Route = createFileRoute("/alerts/")({
   component: Alerts,
 });
 
-function Alerts() {
-  const { products } = useStore();
-  const [requested, setRequested] = useState<Set<string>>(new Set());
+const STORAGE_KEY = "alerts-requested";
 
-  const lowStock = products.filter((p) => p.stock <= p.minStock);
+function loadRequested(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveRequested(set: Set<string>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+  } catch {}
+}
+
+type Filter = "todos" | "criticos";
+
+function Alerts() {
+  const { products, movements } = useStore();
+  const [requested, setRequested] = useState<Set<string>>(loadRequested);
+  const [filter, setFilter] = useState<Filter>("todos");
+
+  // Ordenados: agotados primero, luego por ratio stock/minStock ascendente
+  const lowStock = products
+    .filter((p) => p.stock <= p.minStock)
+    .sort((a, b) => {
+      const aRatio = a.minStock > 0 ? a.stock / a.minStock : 0;
+      const bRatio = b.minStock > 0 ? b.stock / b.minStock : 0;
+      return aRatio - bRatio;
+    });
+
   const critical = lowStock.filter((p) => p.stock < p.minStock * 0.4 || p.stock === 0);
+  const displayed = filter === "criticos" ? critical : lowStock;
 
   const handleRequest = (id: string) => {
-    setRequested((s) => new Set(s).add(id));
+    setRequested((prev) => {
+      const next = new Set(prev).add(id);
+      saveRequested(next);
+      return next;
+    });
+  };
+
+  const lastEntryLabel = (productId: string): string => {
+    const entries = movements
+      .filter((m) => m.productId === productId && m.type === "entrada")
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    if (entries.length === 0) return "Sin entradas registradas";
+
+    const date = new Date(entries[0].timestamp);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return "Última entrada: Hoy";
+    if (date.toDateString() === yesterday.toDateString()) return "Última entrada: Ayer";
+    return `Última entrada: ${date.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`;
   };
 
   return (
@@ -29,6 +80,7 @@ function Alerts() {
         </p>
       </section>
 
+      {/* Contadores */}
       <div className="grid grid-cols-2 gap-2 mb-section-margin">
         <div className="bg-error-container p-container-padding rounded-xl flex flex-col gap-1">
           <span className="text-label-md text-on-error-container uppercase">Críticos</span>
@@ -50,11 +102,36 @@ function Alerts() {
         </div>
       </div>
 
+      {/* Filtros */}
+      <div className="flex bg-surface-container p-1 rounded-lg mb-section-margin">
+        <button
+          onClick={() => setFilter("todos")}
+          className={`flex-1 py-2 rounded-md text-label-lg font-semibold transition-all ${
+            filter === "todos"
+              ? "bg-surface text-on-surface shadow-sm"
+              : "text-on-surface-variant"
+          }`}
+        >
+          Todos ({lowStock.length})
+        </button>
+        <button
+          onClick={() => setFilter("criticos")}
+          className={`flex-1 py-2 rounded-md text-label-lg font-semibold transition-all ${
+            filter === "criticos"
+              ? "bg-error text-on-error shadow-sm"
+              : "text-on-surface-variant"
+          }`}
+        >
+          Críticos ({critical.length})
+        </button>
+      </div>
+
+      {/* Lista */}
       <div className="flex flex-col gap-3 pb-8">
-        {lowStock.map((p) => {
+        {displayed.map((p) => {
           const isCritical = p.stock < p.minStock * 0.4 || p.stock === 0;
           const isReq = requested.has(p.id);
-          const pct = Math.min(100, Math.round((p.stock / p.minStock) * 100));
+          const pct = p.minStock > 0 ? Math.min(100, Math.round((p.stock / p.minStock) * 100)) : 0;
           return (
             <div
               key={p.id}
@@ -82,6 +159,7 @@ function Alerts() {
                       {isCritical ? "Stock Crítico" : "Bajo Stock"}
                     </span>
                   </div>
+
                   <div className="flex items-end justify-between gap-3">
                     <div className="flex flex-col">
                       <span className="text-label-md text-on-surface-variant">Actual / Mínimo</span>
@@ -110,11 +188,17 @@ function Alerts() {
                       </button>
                     )}
                   </div>
-                  <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-1">
+
+                  <div className="w-full bg-surface-container-high h-1.5 rounded-full">
                     <div
                       className={`${isCritical ? "bg-error" : "bg-tertiary-fixed-dim"} h-full rounded-full transition-all`}
                       style={{ width: `${pct}%` }}
                     />
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Icon name="schedule" className="text-outline" style={{ fontSize: 13 }} />
+                    <span className="text-label-sm text-outline">{lastEntryLabel(p.id)}</span>
                   </div>
                 </div>
               </div>
@@ -122,10 +206,12 @@ function Alerts() {
           );
         })}
 
-        {lowStock.length === 0 && (
+        {displayed.length === 0 && (
           <div className="p-8 text-center text-on-surface-variant bg-surface-container-lowest border border-outline-variant rounded-xl">
             <Icon name="check_circle" className="text-secondary" style={{ fontSize: 40 }} />
-            <p className="mt-2 text-body-lg">Sin alertas de stock</p>
+            <p className="mt-2 text-body-lg">
+              {filter === "criticos" ? "Sin alertas críticas" : "Sin alertas de stock"}
+            </p>
           </div>
         )}
       </div>
