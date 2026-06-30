@@ -1,6 +1,6 @@
 import type { Movement } from "@/lib/mock-data";
 
-const API_URL = "http://localhost:3001/movements";
+const API_URL = `${import.meta.env.VITE_API_URL}/movements`;
 
 export type ApiMovement = {
   id: string;

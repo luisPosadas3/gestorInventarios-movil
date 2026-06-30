@@ -1,6 +1,6 @@
 import type { Sale } from "@/lib/mock-data";
 
-const API_URL = "http://localhost:3001/sales";
+const API_URL = `${import.meta.env.VITE_API_URL}/sales`;
 
 export type ApiSaleItem = {
   id: string;

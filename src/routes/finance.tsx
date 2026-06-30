@@ -8,15 +8,43 @@ export const Route = createFileRoute("/finance")({
   component: Finance,
 });
 
+function formatTime(timestamp: string) {
+  return new Date(timestamp).toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
 function Finance() {
   const { sales, movements, products } = useStore();
+
+  // ── Ventas de hoy ────────────────────────────────────────────────
   const today = new Date().toDateString();
   const salesToday = sales.filter((s) => new Date(s.timestamp).toDateString() === today);
-  const totalSales = salesToday.reduce((s, x) => s + x.total, 0) || 15420;
-  const numSales = salesToday.length || 42;
+  const totalSales = salesToday.reduce((s, x) => s + x.total, 0);
+  const numSales = salesToday.length;
 
-  const entradas = movements.filter((m) => m.type === "entrada");
-  const salidas = movements.filter((m) => m.type === "salida");
+  // Ganancia real: (precio_venta − precio_compra) × cantidad por ítem
+  const profitToday = salesToday.reduce((total, sale) => {
+    return (
+      total +
+      sale.items.reduce((s, item) => {
+        const product = products.find((p) => p.id === item.productId);
+        const cost = (product?.purchasePrice ?? item.price) * item.qty;
+        return s + item.price * item.qty - cost;
+      }, 0)
+    );
+  }, 0);
+
+  // ── Movimientos del día ──────────────────────────────────────────
+  const entradas = movements.filter(
+    (m) => m.type === "entrada" && new Date(m.timestamp).toDateString() === today,
+  );
+  const salidas = movements.filter(
+    (m) => m.type === "salida" && new Date(m.timestamp).toDateString() === today,
+  );
   const entradasValue = entradas.reduce((s, m) => {
     const p = products.find((p) => p.id === m.productId);
     return s + (p?.purchasePrice ?? 0) * m.quantity;
@@ -26,26 +54,39 @@ function Finance() {
     return s + (p?.purchasePrice ?? 0) * m.quantity;
   }, 0);
 
-  const goal = 20000;
-  const progress = Math.min(100, Math.round((totalSales / goal) * 100));
+  // ── Meta dinámica: promedio de ventas de los últimos 7 días ─────
+  const last7DaysTotals = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (i + 1));
+    const dateStr = d.toDateString();
+    return sales
+      .filter((s) => new Date(s.timestamp).toDateString() === dateStr)
+      .reduce((sum, s) => sum + s.total, 0);
+  });
+  const avgDailySales = last7DaysTotals.reduce((sum, v) => sum + v, 0) / 7;
+  const goal = Math.round(avgDailySales);
+  const hasGoal = goal > 0;
+  const progress = hasGoal ? Math.min(100, Math.round((totalSales / goal) * 100)) : 0;
 
-  const recentTx = [
-    ...salesToday.slice(0, 3).map((s) => ({
-      id: s.id,
-      label: `Venta #${s.id.slice(-4)}`,
-      amount: s.total,
-      when: "Hace momentos",
-      positive: true,
-    })),
-    { id: "x1", label: "Venta #1234", amount: 450, when: "Hace 15 min · Caja 01", positive: true },
-    {
-      id: "x2",
-      label: "Ajuste de Inventario",
-      amount: -120,
-      when: "Hace 1h · Depósito",
-      positive: false,
-    },
-  ];
+  // ── Gráfico: últimos 4 días ──────────────────────────────────────
+  const last4Days = Array.from({ length: 4 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (3 - i));
+    return d;
+  });
+  const last4DaySales = last4Days.map((d, i) => ({
+    label: i === 3 ? "Hoy" : DAY_LABELS[d.getDay()],
+    isToday: i === 3,
+    total: sales
+      .filter((s) => new Date(s.timestamp).toDateString() === d.toDateString())
+      .reduce((sum, s) => sum + s.total, 0),
+  }));
+  const maxDaySales = Math.max(1, ...last4DaySales.map((d) => d.total));
+
+  // ── Transacciones recientes ──────────────────────────────────────
+  const recentSales = [...sales]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 5);
 
   return (
     <AppShell title="Finanzas" back>
@@ -70,7 +111,8 @@ function Finance() {
               ${totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
             <p className="text-label-md text-secondary flex items-center gap-1 mt-1">
-              <Icon name="trending_up" style={{ fontSize: 14 }} /> {numSales} ventas realizadas
+              <Icon name="trending_up" style={{ fontSize: 14 }} /> {numSales}{" "}
+              {numSales === 1 ? "venta realizada" : "ventas realizadas"}
             </p>
           </div>
 
@@ -78,22 +120,25 @@ function Finance() {
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary" />
             <div className="flex justify-between items-start mb-2">
               <span className="text-label-lg text-on-surface-variant font-semibold">
-                Ganancia Estimada del Día
+                Ganancia del Día
               </span>
               <Icon name="trending_up" className="text-secondary" />
             </div>
             <p className="text-headline-md font-semibold">
-              ${(totalSales * 0.25).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ${profitToday.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-label-md text-secondary flex items-center gap-1 mt-1">
-              <Icon name="check_circle" style={{ fontSize: 14 }} /> Meta diaria en progreso
-            </p>
+            {numSales > 0 && (
+              <p className="text-label-md text-secondary flex items-center gap-1 mt-1">
+                <Icon name="percent" style={{ fontSize: 14 }} /> Margen:{" "}
+                {totalSales > 0 ? Math.round((profitToday / totalSales) * 100) : 0}%
+              </p>
+            )}
           </div>
         </section>
 
         <section className="space-y-3">
           <h3 className="text-label-lg text-on-surface-variant uppercase tracking-wider font-semibold">
-            Resumen de Movimientos
+            Resumen de Movimientos del dia
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-surface border border-outline-variant rounded-xl p-3 flex items-center gap-3">
@@ -103,7 +148,7 @@ function Finance() {
               <div className="min-w-0">
                 <p className="text-label-md text-on-surface-variant">Entradas</p>
                 <p className="text-label-lg font-semibold truncate">
-                  {entradas.length} items / ${entradasValue.toFixed(0)}
+                  {entradas.length} · ${entradasValue.toFixed(0)}
                 </p>
               </div>
             </div>
@@ -114,7 +159,7 @@ function Finance() {
               <div className="min-w-0">
                 <p className="text-label-md text-on-surface-variant">Salidas</p>
                 <p className="text-label-lg font-semibold truncate">
-                  {salidas.length} items / ${salidasValue.toFixed(0)}
+                  {salidas.length} · ${salidasValue.toFixed(0)}
                 </p>
               </div>
             </div>
@@ -126,31 +171,39 @@ function Finance() {
             <div>
               <h3 className="text-headline-sm font-semibold">Progreso de Ventas</h3>
               <p className="text-body-md text-on-surface-variant">
-                Meta diaria: ${goal.toLocaleString()}
+                {hasGoal
+                  ? `Meta estimada (prom. 7d): $${goal.toLocaleString()}`
+                  : "Sin historial para estimar meta"}
               </p>
             </div>
-            <p className="text-headline-md text-primary font-semibold">{progress}%</p>
+            {hasGoal && <p className="text-headline-md text-primary font-semibold">{progress}%</p>}
           </div>
           <div className="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-1000 ease-out"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${hasGoal ? progress : 0}%` }}
             />
           </div>
           <div className="mt-6 grid grid-cols-4 gap-2 h-28 items-end">
-            <div className="bg-primary/20 rounded-t-lg" style={{ height: "40%" }} />
-            <div className="bg-primary/40 rounded-t-lg" style={{ height: "65%" }} />
-            <div className="bg-primary/60 rounded-t-lg" style={{ height: "90%" }} />
-            <div
-              className="bg-primary rounded-t-lg animate-pulse"
-              style={{ height: `${progress}%` }}
-            />
+            {last4DaySales.map((day) => {
+              const heightPct = Math.max(4, Math.round((day.total / maxDaySales) * 100));
+              return (
+                <div
+                  key={day.label}
+                  className={`rounded-t-lg transition-all ${
+                    day.isToday ? "bg-primary animate-pulse" : "bg-primary/40"
+                  }`}
+                  style={{ height: `${heightPct}%` }}
+                />
+              );
+            })}
           </div>
           <div className="flex justify-between mt-2 text-label-md text-outline">
-            <span>Lun</span>
-            <span>Mar</span>
-            <span>Mié</span>
-            <span className="text-primary font-bold">Hoy</span>
+            {last4DaySales.map((day) => (
+              <span key={day.label} className={day.isToday ? "text-primary font-bold" : ""}>
+                {day.label}
+              </span>
+            ))}
           </div>
         </section>
 
@@ -158,29 +211,39 @@ function Finance() {
           <h3 className="text-label-lg text-on-surface-variant uppercase tracking-wider font-semibold">
             Transacciones Recientes
           </h3>
-          <div className="space-y-2">
-            {recentTx.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between p-3 bg-surface border border-outline-variant rounded-xl"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-surface-container-highest grid place-items-center text-primary shrink-0">
-                    <Icon name="receipt_long" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-label-lg font-semibold truncate">{t.label}</p>
-                    <p className="text-label-md text-on-surface-variant truncate">{t.when}</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-headline-sm font-semibold shrink-0 ${t.positive ? "text-primary" : "text-error"}`}
+          {recentSales.length === 0 ? (
+            <div className="p-8 text-center text-on-surface-variant bg-surface-container-lowest border border-outline-variant rounded-xl">
+              <Icon name="receipt_long" style={{ fontSize: 32 }} />
+              <p className="mt-2 text-body-md">Sin ventas registradas</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentSales.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between p-3 bg-surface border border-outline-variant rounded-xl"
                 >
-                  {t.positive ? "+" : "-"}${Math.abs(t.amount).toFixed(2)}
-                </p>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-surface-container-highest grid place-items-center text-primary shrink-0">
+                      <Icon name="receipt_long" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-label-lg font-semibold truncate">
+                        Venta #{s.id.slice(-6).toUpperCase()}
+                      </p>
+                      <p className="text-label-md text-on-surface-variant truncate">
+                        {s.items.length} {s.items.length === 1 ? "producto" : "productos"} ·{" "}
+                        {formatTime(s.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-headline-sm font-semibold shrink-0 text-primary">
+                    +${s.total.toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </AppShell>

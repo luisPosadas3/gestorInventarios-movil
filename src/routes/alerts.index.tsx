@@ -106,7 +106,7 @@ function Alerts() {
                         onClick={() => handleRequest(p.id)}
                         className="bg-primary text-on-primary text-label-lg font-semibold px-3 py-2 rounded-lg flex items-center gap-1 active:scale-95"
                       >
-                        <Icon name="add_shopping_cart" style={{ fontSize: 18 }} /> Solicitar
+                        <Icon name="add_shopping_cart" style={{ fontSize: 18 }} /> Marcar
                       </button>
                     )}
                   </div>
