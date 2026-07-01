@@ -80,22 +80,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Agregar movimiento localmente para reflejo inmediato
     setMovements((prev) => [mapApiMovementToMovement(apiMov), ...prev]);
 
-    // Actualiza stock local para reflejo inmediato en UI sin refetch de productos
+    // Actualiza stock local para reflejo inmediato en UI
     updateStock(m.productId, m.type === "entrada" ? m.quantity : -m.quantity);
+
+    // Reconciliar con el stock real del servidor en segundo plano
+    try {
+      const updatedProducts = await getProducts();
+      setProducts(updatedProducts.map(mapApiProductToProduct));
+    } catch (e) {
+      console.error("Error al refrescar productos tras el movimiento:", e);
+    }
   };
 
   const addToCart: Store["addToCart"] = (productId) => {
+    const stock = products.find((p) => p.id === productId)?.stock ?? 0;
+    if (stock <= 0) return;
     setCart((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       if (existing)
-        return prev.map((i) => (i.productId === productId ? { ...i, qty: i.qty + 1 } : i));
+        return prev.map((i) =>
+          i.productId === productId ? { ...i, qty: Math.min(stock, i.qty + 1) } : i,
+        );
       return [...prev, { productId, qty: 1 }];
     });
   };
 
   const setCartQty: Store["setCartQty"] = (productId, qty) => {
+    const stock = products.find((p) => p.id === productId)?.stock ?? Infinity;
     setCart((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, qty: Math.max(1, qty) } : i)),
+      prev.map((i) =>
+        i.productId === productId ? { ...i, qty: Math.min(stock, Math.max(1, qty)) } : i,
+      ),
     );
   };
 
@@ -125,12 +140,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Actualizar stock local para reflejo inmediato
     items.forEach((i) => updateStock(i.productId, -i.qty));
 
-    // Refrescar movimientos en segundo plano
+    // Refrescar productos y movimientos en segundo plano para reconciliar
+    // el stock real del servidor con el parche optimista aplicado arriba.
     try {
-      const updatedMovements = await getMovements();
+      const [updatedProducts, updatedMovements] = await Promise.all([getProducts(), getMovements()]);
+      setProducts(updatedProducts.map(mapApiProductToProduct));
       setMovements(updatedMovements.map(mapApiMovementToMovement));
     } catch (e) {
-      console.error("Error al refrescar movimientos tras la venta:", e);
+      console.error("Error al refrescar datos tras la venta:", e);
     }
 
     setCart([]);

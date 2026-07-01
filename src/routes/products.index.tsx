@@ -24,6 +24,7 @@ function Products() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const loadProducts = async () => {
     setLoading(true);
@@ -50,7 +51,6 @@ function Products() {
       setDeleteId(null);
     }
   };
-  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -79,7 +79,7 @@ function Products() {
           <button
             type="button"
             onClick={() => setScanOpen(true)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-primary p-1 hover:bg-surface-container-low rounded-full"
+            className="hidden absolute right-3 top-1/2 -translate-y-1/2 text-primary p-1 hover:bg-surface-container-low rounded-full"
             aria-label="Escanear código"
           >
             <Icon name="barcode_scanner" />

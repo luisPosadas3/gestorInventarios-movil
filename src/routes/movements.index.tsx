@@ -105,6 +105,8 @@ function Movements() {
   const unit = parseFloat(price) || 0;
   const total = unit * qty;
 
+  const stockExceeded = type === "salida" && !!selectedProduct && qty > selectedProduct.stock;
+
   const openMovementConfirm = (
     product = selectedProduct,
     movementQty = qty,
@@ -112,6 +114,7 @@ function Movements() {
     movementUnit = unit,
   ) => {
     if (!product) return;
+    if (movementType === "salida" && movementQty > product.stock) return;
     setConfirm({ product, qty: movementQty, type: movementType, unit: movementUnit });
   };
 
@@ -138,6 +141,12 @@ function Movements() {
       setPendingVoicePrice(null);
       setSearch("");
       setSelectedProduct(null);
+      // Reconciliar productos locales (stock real) tras el movimiento
+      try {
+        setApiProducts(await getProducts());
+      } catch (e) {
+        console.error("Error al refrescar productos tras el movimiento:", e);
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Error al guardar");
     } finally {
@@ -199,6 +208,11 @@ function Movements() {
 
     if (!movement.type || !movement.quantity) {
       setVoiceError("Completa tipo y cantidad antes de confirmar.");
+      return;
+    }
+
+    if (nextType === "salida" && nextQty > match.product.stock) {
+      setVoiceError(`Stock insuficiente: solo hay ${match.product.stock} unidades disponibles.`);
       return;
     }
 
@@ -474,9 +488,15 @@ function Movements() {
           </label>
         </div>
 
+        {stockExceeded && (
+          <p className="text-label-md text-error px-1">
+            Stock insuficiente: solo hay {selectedProduct?.stock} unidades disponibles.
+          </p>
+        )}
+
         <button
           onClick={handleConfirm}
-          disabled={!selectedProduct}
+          disabled={!selectedProduct || stockExceeded}
           className="mt-2 w-full h-11 bg-primary text-on-primary rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md disabled:opacity-40 disabled:pointer-events-none"
         >
           <Icon name="check_circle" /> Confirmar Movimiento
@@ -496,7 +516,7 @@ function Movements() {
         <button
           type="button"
           onClick={() => setScanOpen(true)}
-          className="p-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl flex flex-col gap-2 active:scale-95 transition-transform text-left"
+          className="hidden p-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl flex flex-col gap-2 active:scale-95 transition-transform text-left"
         >
           <Icon name="barcode_scanner" />
           <p className="text-label-md">Escanear código</p>

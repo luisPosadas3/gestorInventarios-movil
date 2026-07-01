@@ -176,7 +176,7 @@ function NewProduct() {
               <button
                 type="button"
                 onClick={() => setScanOpen(true)}
-                className="h-11 px-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                className="hidden h-11 px-4 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
               >
                 <Icon name="barcode_scanner" />
                 Escanear SKU

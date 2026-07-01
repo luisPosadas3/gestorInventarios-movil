@@ -51,7 +51,9 @@ function Sales() {
 
   const handleCharge = () => {
     if (cart.length === 0) return;
-    const recv = parseFloat(received) || total;
+    const trimmed = received.trim();
+    const recv = trimmed === "" ? total : Number(trimmed);
+    if (!Number.isFinite(recv) || recv < 0) return;
     setConfirm({
       total,
       received: recv,
@@ -88,7 +90,7 @@ function Sales() {
           <button
             type="button"
             onClick={() => setScanOpen(true)}
-            className="flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg text-label-lg active:scale-95"
+            className="hidden flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg text-label-lg active:scale-95"
             aria-label="Escanear código"
           >
             <Icon name="barcode_scanner" />

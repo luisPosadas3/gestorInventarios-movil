@@ -1,5 +1,9 @@
 import type { Movement } from "@/lib/mock-data";
 
+if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {
+  console.warn("VITE_API_URL no está configurado: las peticiones a la API fallarán.");
+}
+
 const API_URL = `${import.meta.env.VITE_API_URL}/movements`;
 
 export type ApiMovement = {
