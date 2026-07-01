@@ -30,6 +30,7 @@ function NewProduct() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEditing);
   const [scanOpen, setScanOpen] = useState(false);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editId) return;
@@ -45,7 +46,9 @@ function NewProduct() {
         });
         setImage(p.image ?? "");
       })
-      .catch((err) => alert(err.message))
+      .catch((err) =>
+        setErrorModal(err instanceof Error ? err.message : "Error al cargar el producto"),
+      )
       .finally(() => setLoading(false));
   }, [editId]);
 
@@ -62,14 +65,36 @@ function NewProduct() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !form.name.trim() ||
-      !form.sku.trim() ||
-      !form.purchasePrice ||
-      !form.salePrice ||
-      !form.stock
-    )
+
+    const missingFields: string[] = [];
+    if (!form.name.trim()) missingFields.push("Nombre del Producto");
+    if (!form.sku.trim()) missingFields.push("SKU");
+    if (!form.purchasePrice) missingFields.push("Precio Compra");
+    if (!form.salePrice) missingFields.push("Precio Venta");
+    if (!form.stock) missingFields.push(isEditing ? "Stock Actual" : "Stock Inicial");
+
+    if (missingFields.length > 0) {
+      setErrorModal(`Completa los siguientes campos obligatorios: ${missingFields.join(", ")}.`);
       return;
+    }
+
+    const purchasePriceNum = Number(form.purchasePrice);
+    const salePriceNum = Number(form.salePrice);
+    const stockNum = Number(form.stock);
+
+    if (stockNum < 0) {
+      setErrorModal(
+        isEditing
+          ? "El stock actual no puede ser un número negativo."
+          : "El stock inicial no puede ser un número negativo.",
+      );
+      return;
+    }
+
+    if (purchasePriceNum > salePriceNum) {
+      setErrorModal("El precio de compra no puede ser mayor al precio de venta.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -77,9 +102,9 @@ function NewProduct() {
         sku: form.sku.trim(),
         name: form.name.trim(),
         image: image || null,
-        purchasePrice: Number(form.purchasePrice),
-        salePrice: Number(form.salePrice),
-        stock: Number(form.stock),
+        purchasePrice: purchasePriceNum,
+        salePrice: salePriceNum,
+        stock: stockNum,
         minStock: Number(form.minStock || 5),
       };
 
@@ -91,7 +116,7 @@ function NewProduct() {
 
       navigate({ to: "/products" });
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Error al guardar producto");
+      setErrorModal(error instanceof Error ? error.message : "Error al guardar producto");
     } finally {
       setSaving(false);
     }
@@ -157,7 +182,6 @@ function NewProduct() {
         <Card title="Información Básica" icon="info">
           <Field label="Nombre del Producto" required>
             <input
-              required
               value={form.name}
               onChange={update("name")}
               placeholder="Ej: Cable Industrial Cat6"
@@ -167,7 +191,6 @@ function NewProduct() {
           <Field label="SKU" required>
             <div className="flex flex-col gap-2">
               <input
-                required
                 value={form.sku}
                 onChange={update("sku")}
                 placeholder="Ej: MK-001"
@@ -191,7 +214,6 @@ function NewProduct() {
               <div className="h-12 px-3 bg-white border border-outline-variant rounded-lg flex items-center">
                 <span className="text-on-surface-variant mr-2">$</span>
                 <input
-                  required
                   type="number"
                   step="0.01"
                   min="0"
@@ -206,7 +228,6 @@ function NewProduct() {
               <div className="h-12 px-3 bg-white border border-outline-variant rounded-lg flex items-center">
                 <span className="text-on-surface-variant mr-2">$</span>
                 <input
-                  required
                   type="number"
                   step="0.01"
                   min="0"
@@ -228,9 +249,7 @@ function NewProduct() {
           <div className="grid grid-cols-2 gap-4">
             <Field label={isEditing ? "Stock Actual" : "Stock Inicial"} required>
               <input
-                required
                 type="number"
-                min="0"
                 value={form.stock}
                 onChange={update("stock")}
                 placeholder="0"
@@ -239,7 +258,6 @@ function NewProduct() {
             </Field>
             <Field label="Stock Mínimo" required>
               <input
-                required
                 type="number"
                 min="0"
                 value={form.minStock}
@@ -273,6 +291,30 @@ function NewProduct() {
         mode="capture"
         onDetected={(code) => setForm((prev) => ({ ...prev, sku: code }))}
       />
+
+      {errorModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden border border-error/20">
+            <div className="px-container-padding py-5 text-center border-b border-outline-variant bg-error-container/10">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-error/10 rounded-full mb-2">
+                <Icon name="error" filled className="text-error" style={{ fontSize: 28 }} />
+              </div>
+              <h2 className="text-headline-sm font-semibold text-error">No se pudo continuar</h2>
+            </div>
+            <div className="p-container-padding py-6 text-center">
+              <p className="text-body-lg text-on-surface-variant font-medium">{errorModal}</p>
+            </div>
+            <div className="p-container-padding bg-surface-container-low flex flex-col gap-2">
+              <button
+                onClick={() => setErrorModal(null)}
+                className="w-full h-12 bg-error text-on-error rounded-xl text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md active:scale-95"
+              >
+                <Icon name="close" /> Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
