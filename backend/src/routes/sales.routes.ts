@@ -33,22 +33,41 @@ router.get("/", async (req, res) => {
 // POST /sales — Create a new sale
 router.post("/", async (req, res) => {
   try {
-    const { total, received, items } = req.body;
+    const { received, items } = req.body;
 
-    if (typeof total !== "number" || total < 0) {
-      return res.status(400).json({ error: "total must be a non-negative number" });
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "items must be a non-empty array" });
     }
 
-    if (typeof received !== "number" || received < 0) {
+    for (const item of items) {
+      if (typeof item?.productId !== "string" || !item.productId) {
+        return res.status(400).json({ error: "each item requires a valid productId" });
+      }
+      if (typeof item.name !== "string" || !item.name.trim()) {
+        return res.status(400).json({ error: "each item requires a valid name" });
+      }
+      if (typeof item.qty !== "number" || !Number.isInteger(item.qty) || item.qty < 1) {
+        return res
+          .status(400)
+          .json({ error: `quantity must be a positive integer for product ${item.productId}` });
+      }
+      if (typeof item.price !== "number" || !Number.isFinite(item.price) || item.price < 0) {
+        return res
+          .status(400)
+          .json({ error: `price must be a non-negative number for product ${item.productId}` });
+      }
+    }
+
+    // El total se calcula en el servidor a partir de los items validados;
+    // nunca se confía en el total enviado por el cliente.
+    const total = items.reduce((sum: number, item: any) => sum + item.qty * item.price, 0);
+
+    if (typeof received !== "number" || !Number.isFinite(received) || received < 0) {
       return res.status(400).json({ error: "received must be a non-negative number" });
     }
 
     if (received < total) {
       return res.status(400).json({ error: "El pago recibido no puede ser menor al total de la compra" });
-    }
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "items must be a non-empty array" });
     }
 
     // Execute everything in a single transaction to guarantee consistency

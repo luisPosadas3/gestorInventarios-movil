@@ -5,13 +5,19 @@ import { parsePagination } from "../lib/pagination.js";
 
 const router = Router();
 
+// sku es el único campo @unique del modelo Product, así que cualquier P2002
+// en estas rutas es necesariamente por SKU duplicado (independiente del
+// formato de error.meta.target, que puede variar según el motor de BD).
 function isUniqueConstraintError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002" &&
-    Array.isArray(error.meta?.target) &&
-    (error.meta.target as string[]).includes("sku")
-  );
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+// Movement.productId referencia a Product con ON DELETE RESTRICT: no se
+// puede eliminar un producto que ya tiene movimientos registrados.
+function isForeignKeyConstraintError(
+  error: unknown,
+): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003";
 }
 
 function validateProductPayload(body: {
@@ -183,6 +189,11 @@ router.delete("/:id", async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
+    if (isForeignKeyConstraintError(error)) {
+      return res.status(400).json({
+        error: "No se puede eliminar: el producto tiene movimientos registrados en su historial",
+      });
+    }
     console.error(error);
     res.status(500).json({
       error: "Failed to delete product",

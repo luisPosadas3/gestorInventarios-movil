@@ -59,6 +59,10 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "quantity must be a positive integer" });
     }
 
+    if (typeof price !== "number" || !Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ error: "price must be a non-negative number" });
+    }
+
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) return res.status(404).json({ error: "Product not found" });
 
