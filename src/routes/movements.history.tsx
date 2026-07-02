@@ -10,6 +10,8 @@ export const Route = createFileRoute("/movements/history")({
   component: History,
 });
 
+const PAGE_SIZE = 30;
+
 function groupByDay(movements: Movement[]) {
   const map = new Map<string, Movement[]>();
   for (const m of movements) {
@@ -33,17 +35,38 @@ function dayLabel(key: string) {
 function History() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"todos" | "entrada" | "salida">("todos");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
+  // Al cambiar el filtro, se reinicia la paginación y se pide la primera página.
   useEffect(() => {
     setLoading(true);
     setError(null);
-    getMovements(filter === "todos" ? undefined : filter)
-      .then((data) => setMovements(data.map(mapApiMovementToMovement)))
+    setPage(1);
+    getMovements(filter === "todos" ? undefined : filter, { page: 1, limit: PAGE_SIZE })
+      .then((data) => {
+        setMovements(data.map(mapApiMovementToMovement));
+        setHasMore(data.length === PAGE_SIZE);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [filter]);
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    getMovements(filter === "todos" ? undefined : filter, { page: nextPage, limit: PAGE_SIZE })
+      .then((data) => {
+        setMovements((prev) => [...prev, ...data.map(mapApiMovementToMovement)]);
+        setHasMore(data.length === PAGE_SIZE);
+        setPage(nextPage);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Error al cargar más movimientos"))
+      .finally(() => setLoadingMore(false));
+  };
 
   const groups = groupByDay(movements);
 
@@ -177,6 +200,21 @@ function History() {
               ))}
             </div>
           ))}
+
+          {hasMore && (
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full h-11 mt-2 border border-outline text-on-surface-variant rounded-xl text-label-lg flex items-center justify-center gap-2 hover:bg-surface-container-high disabled:opacity-60"
+            >
+              <Icon
+                name={loadingMore ? "progress_activity" : "expand_more"}
+                className={loadingMore ? "animate-spin" : ""}
+              />
+              {loadingMore ? "Cargando…" : "Cargar más movimientos"}
+            </button>
+          )}
         </div>
       )}
     </AppShell>

@@ -1,7 +1,18 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
+import { parsePagination } from "../lib/pagination.js";
 
 const router = Router();
+
+function isUniqueConstraintError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    Array.isArray(error.meta?.target) &&
+    (error.meta.target as string[]).includes("sku")
+  );
+}
 
 function validateProductPayload(body: {
   sku?: unknown;
@@ -44,10 +55,11 @@ function validateProductPayload(body: {
   return null;
 }
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       orderBy: { name: "asc" },
+      ...parsePagination(req.query),
     });
     res.json(products);
   } catch (error) {
@@ -91,6 +103,11 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(product);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return res
+        .status(400)
+        .json({ error: `El SKU "${req.body?.sku}" ya está en uso por otro producto` });
+    }
     console.error(error);
     res.status(500).json({ error: "Failed to create product" });
   }
@@ -132,6 +149,11 @@ router.put("/:id", async (req, res) => {
 
     res.json(product);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return res
+        .status(400)
+        .json({ error: `El SKU "${req.body?.sku}" ya está en uso por otro producto` });
+    }
     console.error(error);
     res.status(500).json({
       error: "Failed to update product",

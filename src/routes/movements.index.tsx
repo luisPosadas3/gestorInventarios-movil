@@ -10,8 +10,7 @@ import {
   normalizeVoiceMovementDraft,
   type VoiceMovementDraft,
 } from "@/lib/voice-movement";
-import { getProducts, mapApiProductToProduct, type ApiProduct } from "../services/products.service";
-import { createMovement } from "../services/movements.service";
+import { getProducts, type ApiProduct } from "../services/products.service";
 
 export const Route = createFileRoute("/movements/")({
   head: () => ({ meta: [{ title: "Movimientos" }] }),
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/movements/")({
 });
 
 function Movements() {
-  const { updateStock } = useStore();
+  const { addMovement } = useStore();
 
   // ── Productos desde API ──────────────────────────────────────────
   const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
@@ -124,7 +123,9 @@ function Movements() {
     if (!confirm) return;
     setSaving(true);
     try {
-      await createMovement({
+      // Crea el movimiento y sincroniza el stock/movimientos del store
+      // compartido (dashboard, alertas, finanzas) en un solo paso.
+      await addMovement({
         productId: confirm.product.id,
         productName: confirm.product.name,
         type: confirm.type,
@@ -133,8 +134,6 @@ function Movements() {
         price: confirm.unit,
         note: confirm.type === "entrada" ? "Registro manual" : "Salida manual",
       });
-      // Reflejo inmediato en store local
-      updateStock(confirm.product.id, confirm.type === "entrada" ? confirm.qty : -confirm.qty);
       setConfirm(null);
       setQty(1);
       setPrice("");

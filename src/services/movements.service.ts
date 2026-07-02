@@ -26,9 +26,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return json as T;
 }
 
-export async function getMovements(type?: "entrada" | "salida"): Promise<ApiMovement[]> {
-  const url = type ? `${API_URL}?type=${type}` : API_URL;
-  const res = await fetch(url);
+export async function getMovements(
+  type?: "entrada" | "salida",
+  pagination?: { page?: number; limit?: number },
+): Promise<ApiMovement[]> {
+  const params = new URLSearchParams();
+  if (type) params.set("type", type);
+  if (pagination?.limit) params.set("limit", String(pagination.limit));
+  if (pagination?.page) params.set("page", String(pagination.page));
+  const qs = params.toString();
+  const res = await fetch(qs ? `${API_URL}?${qs}` : API_URL);
   return handleResponse<ApiMovement[]>(res);
 }
 

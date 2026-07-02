@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { parsePagination } from "../lib/pagination.js";
 
 const router = Router();
 
-// GET /movements?type=entrada|salida
+// GET /movements?type=entrada|salida&page=&limit=
 router.get("/", async (req, res) => {
   try {
     const { type } = req.query;
@@ -11,6 +12,7 @@ router.get("/", async (req, res) => {
     const movements = await prisma.movement.findMany({
       where: type ? { type: String(type) } : undefined,
       orderBy: { timestamp: "desc" },
+      ...parsePagination(req.query),
     });
 
     res.json(movements);

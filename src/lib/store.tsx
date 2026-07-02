@@ -11,8 +11,11 @@ type Store = {
   sales: Sale[];
   movements: Movement[];
   cart: CartItem[];
-  addProduct: (p: Omit<Product, "id">) => void;
-  updateStock: (productId: string, delta: number) => void;
+  // Vuelve a cargar el catálogo desde la API. Debe llamarse tras cualquier
+  // creación/edición/eliminación de productos hecha fuera del store (p.ej.
+  // en /products) para que el resto de pantallas (dashboard, alertas,
+  // finanzas, ventas) dejen de mostrar datos obsoletos.
+  refreshProducts: () => Promise<void>;
   // Ahora retorna Promise y refresca desde BD
   addMovement: (m: {
     productId: string;
@@ -38,11 +41,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
 
+  const refreshProducts: Store["refreshProducts"] = async () => {
+    const data = await getProducts();
+    setProducts(data.map(mapApiProductToProduct));
+  };
+
   useEffect(() => {
     // Cargar catálogo de productos real de la BD
-    getProducts()
-      .then((data) => setProducts(data.map(mapApiProductToProduct)))
-      .catch((err) => console.error("Error al cargar productos en el Store:", err));
+    refreshProducts().catch((err) => console.error("Error al cargar productos en el Store:", err));
 
     // Cargar historial de ventas real de la BD
     getSales()
@@ -55,11 +61,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .catch((err) => console.error("Error al cargar movimientos en el Store:", err));
   }, []);
 
-  const addProduct: Store["addProduct"] = (p) => {
-    setProducts((prev) => [...prev, { ...p, id: `p${Date.now()}` }]);
-  };
-
-  const updateStock: Store["updateStock"] = (productId, delta) => {
+  // Actualización optimista local del stock; el valor real se reconcilia
+  // enseguida vía refreshProducts() en cada caller.
+  const updateStock = (productId: string, delta: number) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, stock: Math.max(0, p.stock + delta) } : p)),
     );
@@ -85,8 +89,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // Reconciliar con el stock real del servidor en segundo plano
     try {
-      const updatedProducts = await getProducts();
-      setProducts(updatedProducts.map(mapApiProductToProduct));
+      await refreshProducts();
     } catch (e) {
       console.error("Error al refrescar productos tras el movimiento:", e);
     }
@@ -143,8 +146,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Refrescar productos y movimientos en segundo plano para reconciliar
     // el stock real del servidor con el parche optimista aplicado arriba.
     try {
-      const [updatedProducts, updatedMovements] = await Promise.all([getProducts(), getMovements()]);
-      setProducts(updatedProducts.map(mapApiProductToProduct));
+      const [, updatedMovements] = await Promise.all([refreshProducts(), getMovements()]);
       setMovements(updatedMovements.map(mapApiMovementToMovement));
     } catch (e) {
       console.error("Error al refrescar datos tras la venta:", e);
@@ -161,8 +163,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         sales,
         movements,
         cart,
-        addProduct,
-        updateStock,
+        refreshProducts,
         addMovement,
         addToCart,
         setCartQty,

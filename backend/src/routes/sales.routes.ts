@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { parsePagination } from "../lib/pagination.js";
 
 class InsufficientStockError extends Error {
   constructor(message: string) {
@@ -10,8 +11,8 @@ class InsufficientStockError extends Error {
 
 const router = Router();
 
-// GET /sales — List all sales
-router.get("/", async (_req, res) => {
+// GET /sales — List all sales (soporta ?page=&limit= opcional)
+router.get("/", async (req, res) => {
   try {
     const sales = await prisma.sale.findMany({
       include: {
@@ -20,6 +21,7 @@ router.get("/", async (_req, res) => {
       orderBy: {
         timestamp: "desc",
       },
+      ...parsePagination(req.query),
     });
     res.json(sales);
   } catch (error) {

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { createProduct, updateProduct, getProductById } from "@/services/products.service";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/products/new")({
   head: () => ({ meta: [{ title: "Registrar Producto" }] }),
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/products/new")({
 
 function NewProduct() {
   const navigate = useNavigate();
+  const { refreshProducts } = useStore();
   const { editId } = useSearch({ from: "/products/new" });
   const isEditing = Boolean(editId);
 
@@ -113,6 +115,10 @@ function NewProduct() {
       } else {
         await createProduct(payload);
       }
+
+      // Sincroniza el catálogo compartido para que dashboard, alertas,
+      // finanzas y ventas reflejen el cambio sin necesitar recargar.
+      await refreshProducts();
 
       navigate({ to: "/products" });
     } catch (error) {

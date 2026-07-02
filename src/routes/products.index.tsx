@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import type { Product } from "@/lib/mock-data";
 import { getProducts, deleteProduct, mapApiProductToProduct } from "@/services/products.service";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/products/")({
   head: () => ({ meta: [{ title: "Productos — Gestor de Inventario" }] }),
@@ -19,6 +20,7 @@ function stockColor(stock: number, min: number) {
 }
 
 function Products() {
+  const { refreshProducts } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,9 @@ function Products() {
 
     try {
       await deleteProduct(deleteId);
-      await loadProducts();
+      // Sincroniza el catálogo compartido (dashboard, alertas, finanzas,
+      // ventas) además del listado local de esta pantalla.
+      await Promise.all([loadProducts(), refreshProducts()]);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al eliminar");
     } finally {
